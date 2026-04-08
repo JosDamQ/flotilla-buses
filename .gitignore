@@ -1,0 +1,17 @@
+# NetBeans — configuración privada de cada desarrollador
+nbproject/private/
+build/
+dist/
+nbbuild/
+nbdist/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Java compilado
+*.class
+*.jar
