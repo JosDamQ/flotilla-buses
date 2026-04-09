@@ -21,6 +21,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import flotabuses.controladores.LoginController;
 import flotabuses.controladores.MenuController;
+import flotabuses.controladores.ClienteController;
 
 public class FlotaBuses extends Application {
     private final String PAQUETE_VISTA = "/flotabuses/vistas/";
@@ -53,6 +54,15 @@ public class FlotaBuses extends Application {
         try{
             MenuController vistaMenu = (MenuController) cambiarEscena("menuPrincipal.fxml", 600, 400);
             vistaMenu.setEscenarioPrincipal(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void ventanaCliente(){
+        try{
+            ClienteController vistaCliente = (ClienteController) cambiarEscena("clientesView.fxml", 600, 400);
+            vistaCliente.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
