@@ -31,4 +31,24 @@ public class BusController implements Initializable{
     public void menuPrincipal(){
         escenarioPrincipal.menuPrincipal();
     }
+    
+    public void nuevo(){
+        System.out.println("Agregar");
+    }
+    
+    public void eliminar(){
+        System.out.println("Eliminar");
+    }
+    
+    public void editar() {
+        System.out.println("Editar");
+    }
+    
+    public void reporte(){
+        System.out.println("Reporte");
+    }
+    
+    public void seleccionarElemento(){
+        System.out.println("Seleccionar elemento");
+    }
 }
