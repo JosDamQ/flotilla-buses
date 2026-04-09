@@ -1,17 +1,141 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.shape.Ellipse?>
+<?import javafx.scene.shape.Rectangle?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="flotabuses.controladores.BusController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="442.0" prefWidth="931.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="flotabuses.controladores.BusController">
    <children>
-      <Label layoutX="269.0" layoutY="192.0" text="Vista buses" />
-      <ImageView fitHeight="81.0" fitWidth="76.0" layoutX="22.0" layoutY="318.0" onMouseClicked="#menuPrincipal" pickOnBounds="true" preserveRatio="true">
+<!--      <Label layoutX="269.0" layoutY="192.0" text="Vista buses" />-->
+
+      <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#84b4d4" height="449.0" layoutX="284.0" stroke="#84b4d4" strokeType="INSIDE" width="654.0" />
+      <Ellipse fill="#dde4ef" layoutX="193.0" layoutY="146.0" radiusX="357.0" radiusY="422.0" rotate="-36.9" stroke="#dde4ef" strokeType="INSIDE" />
+      <Ellipse fill="#54a4d3" layoutX="219.0" layoutY="492.0" radiusX="374.0" radiusY="213.0" rotate="-167.5" stroke="#54a4d3" strokeType="INSIDE" />
+      <HBox layoutX="174.0" layoutY="338.0" prefHeight="96.0" prefWidth="474.0">
+         <children>
+            <Button fx:id="btnNuevo" contentDisplay="TOP" mnemonicParsing="false" onAction="#nuevo" prefHeight="100.0" prefWidth="111.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Nuevo">
+               <graphic>
+                  <ImageView fx:id="imgNuevo" fitHeight="74.0" fitWidth="75.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/Agregar.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button fx:id="btnEliminar" contentDisplay="TOP" mnemonicParsing="false" onAction="#eliminar" prefHeight="95.0" prefWidth="113.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Eliminar">
+               <graphic>
+                  <ImageView fx:id="imgEliminar" fitHeight="76.0" fitWidth="74.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/Quitar.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button fx:id="btnEditar" contentDisplay="TOP" mnemonicParsing="false" onAction="#editar" prefHeight="95.0" prefWidth="128.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Editar">
+               <graphic>
+                  <ImageView fx:id="imgEditar" fitHeight="75.0" fitWidth="74.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/Edit.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button fx:id="btnReporte" contentDisplay="TOP" mnemonicParsing="false" onAction="#reporte" prefHeight="100.0" prefWidth="111.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Reporte">
+               <graphic>
+                  <ImageView fx:id="imgReporte" fitHeight="82.0" fitWidth="74.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/Reporte.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+         </children>
+      </HBox>
+      <Pane layoutX="-123.0" layoutY="-127.0" prefHeight="377.0" prefWidth="123.0" rotate="90.0" style="-fx-background-color: #ddaca0; -fx-background-radius: 100 100 50 50;">
+         <children>
+            <ImageView fitHeight="98.0" fitWidth="95.0" layoutX="19.0" layoutY="27.0" pickOnBounds="true" preserveRatio="true" rotate="-90.0">
+               <image>
+                  <Image url="@../images/Icon.png" />
+               </image>
+            </ImageView>
+            <Label layoutX="6.0" layoutY="77.0" rotate="-90.0" text="Buses" />
+         </children>
+      </Pane>
+      <ImageView fitHeight="81.0" fitWidth="76.0" layoutX="22.0" layoutY="348.0" onMouseClicked="#menuPrincipal" pickOnBounds="true" preserveRatio="true">
          <image>
             <Image url="@../images/go-back.png" />
          </image>
       </ImageView>
+      <TableView fx:id="tblBuses" layoutX="125.0" layoutY="125.0" onKeyReleased="#seleccionarElemento" onMouseClicked="#seleccionarElemento" prefHeight="200.0" prefWidth="682.0" stylesheets="@../utils/FlotaBuses.css">
+        <columns>
+          <TableColumn fx:id="colCodigoBus" prefWidth="79.33331298828125" text="CodBus" />
+            <TableColumn fx:id="colPlaca" prefWidth="146.0" text="Placa" />
+            <TableColumn fx:id="colTipo" prefWidth="168.0" text="Tipo Bus" />
+            <TableColumn fx:id="colCapacidad" prefWidth="75.0" text="Capacidad" />
+            <TableColumn fx:id="colColor" prefWidth="75.0" text="Color" />
+            <TableColumn fx:id="colEstado" prefWidth="75.0" text="Estado" />
+            <TableColumn fx:id="colDescripcion" prefWidth="75.0" text="Descripcion" />
+        </columns>
+      </TableView>
+      <GridPane layoutX="190.0" layoutY="17.0" prefHeight="90.0" prefWidth="498.0">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="48.0" minHeight="10.0" prefHeight="45.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="54.0" minHeight="10.0" prefHeight="45.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <Label text="Placa" />
+            <Label text="Descripción" GridPane.columnIndex="4" GridPane.rowIndex="1">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <GridPane.margin>
+                  <Insets left="10.0" />
+               </GridPane.margin></Label>
+            <TextField fx:id="txtPlaca" editable="false" prefHeight="25.0" prefWidth="153.0" GridPane.columnIndex="1" />
+            <TextField fx:id="txtDescripcion" editable="false" prefHeight="25.0" prefWidth="111.0" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+            <Label text="Tipo de bus" GridPane.columnIndex="2">
+               <GridPane.margin>
+                  <Insets left="10.0" />
+               </GridPane.margin>
+            </Label>
+            <ComboBox fx:id="cmbTipo" prefWidth="150.0" GridPane.columnIndex="3" />
+            <Label text="Capacidad" GridPane.columnIndex="4">
+               <GridPane.margin>
+                  <Insets left="10.0" />
+               </GridPane.margin>
+            </Label>
+            <TextField fx:id="txtCapacidad" editable="false" GridPane.columnIndex="5" />
+            <Label text="Color" GridPane.rowIndex="1" />
+            <TextField fx:id="txtColor" editable="false" prefHeight="25.0" prefWidth="153.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <Label text="Estado" GridPane.columnIndex="2" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets left="10.0" />
+               </GridPane.margin>
+            </Label>
+            <ComboBox fx:id="cmbEstado" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+         </children>
+      </GridPane>
    </children>
 </AnchorPane>
