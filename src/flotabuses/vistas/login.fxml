@@ -8,7 +8,7 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #5f5b55;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="flotabuses.controladores.LoginController">
    <children>
-      <Button fx:id="btnLogin" layoutX="276.0" layoutY="317.0" mnemonicParsing="false" style="-fx-background-color: #a9d0bb; -fx-background-radius: 30;" text="Login" />
+      <Button fx:id="btnLogin" layoutX="276.0" layoutY="317.0" mnemonicParsing="false" onAction="#login" style="-fx-background-color: #a9d0bb; -fx-background-radius: 30;" text="Login" />
       <Label fx:id="lblUsuario" layoutX="220.0" layoutY="154.0" prefHeight="34.0" prefWidth="67.0" text="Usuario" />
       <TextField fx:id="txtUsuario" layoutX="220.0" layoutY="188.0" />
       <PasswordField fx:id="pswPassword" layoutX="220.0" layoutY="248.0" />

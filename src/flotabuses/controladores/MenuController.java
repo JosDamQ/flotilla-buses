@@ -4,17 +4,16 @@
  */
 package flotabuses.controladores;
 
-import javafx.fxml.Initializable;
+import flotabuses.main.FlotaBuses;
 import java.net.URL;
 import java.util.ResourceBundle;
-import flotabuses.main.FlotaBuses;
-import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 
 /**
  *
  * @author damiangarcia
  */
-public class LoginController implements Initializable{
+public class MenuController implements Initializable{
     private FlotaBuses escenarioPrincipal;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -29,11 +28,9 @@ public class LoginController implements Initializable{
         this.escenarioPrincipal = escenarioPrincipal;
     }
     
-    @FXML
-    private void login(){
-        // Agregar logica para login TODO: FABIAN
-        escenarioPrincipal.menuPrincipal();
-        
-    }
+    // todas las vistas a crear
     
+//    public void ventanaClientes() {
+//        escenarioPrincipal.ventaClientes();
+//    }
 }
