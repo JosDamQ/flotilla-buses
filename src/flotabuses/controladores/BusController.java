@@ -13,11 +13,11 @@ import javafx.fxml.Initializable;
  *
  * @author damiangarcia
  */
-public class MenuController implements Initializable{
+public class BusController implements Initializable{
     private FlotaBuses escenarioPrincipal;
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        
+        // Aqui vamos a cargar datos
     }
     
     public FlotaBuses getEscenarioPrincipal() {
@@ -28,13 +28,7 @@ public class MenuController implements Initializable{
         this.escenarioPrincipal = escenarioPrincipal;
     }
     
-    // todas las vistas a crear
-    
-    public void ventanaClientes() {
-        escenarioPrincipal.ventanaCliente();
-    }
-    
-    public void ventanaBus() {
-        escenarioPrincipal.ventanaBus();
+    public void menuPrincipal(){
+        escenarioPrincipal.menuPrincipal();
     }
 }
