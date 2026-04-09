@@ -25,6 +25,7 @@ import flotabuses.controladores.ClienteController;
 import flotabuses.controladores.BusController;
 import flotabuses.controladores.DestinoController;
 import flotabuses.controladores.AsignacionBusDestinoController;
+import flotabuses.controladores.CompraBoletos;
 
 public class FlotaBuses extends Application {
     private final String PAQUETE_VISTA = "/flotabuses/vistas/";
@@ -93,6 +94,15 @@ public class FlotaBuses extends Application {
         try{
             AsignacionBusDestinoController vistaAsignacionBusDestinoController = (AsignacionBusDestinoController) cambiarEscena("asignacionBusDestinoView.fxml", 600, 400);
             vistaAsignacionBusDestinoController.setEscenarioPrincipal(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void ventanaCompraBoletos(){
+        try{
+            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 600, 400);
+            vistaCompraBoletos.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
         }

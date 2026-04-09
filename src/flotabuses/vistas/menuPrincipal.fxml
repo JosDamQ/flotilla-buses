@@ -22,7 +22,7 @@
                   <MenuItem mnemonicParsing="false" onAction="#ventanaBus" text="Buses" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaDestino"  text="Destinos" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController"  text="Asignar bus a Destino" />
-                  <MenuItem mnemonicParsing="false" text="Compra de Boletos" />
+                  <MenuItem mnemonicParsing="false" onAction="#ventanaCompraBoletos" text="Compra de Boletos" />
                   <!--ESTA EN VEREMOS YA QUE NO LO PIDE EL DOC-->
                   <!--<MenuItem mnemonicParsing="false" text="Usuarios" />-->
             </items>
