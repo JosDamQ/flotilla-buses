@@ -23,6 +23,7 @@ import flotabuses.controladores.LoginController;
 import flotabuses.controladores.MenuController;
 import flotabuses.controladores.ClienteController;
 import flotabuses.controladores.BusController;
+import flotabuses.controladores.DestinoController;
 
 public class FlotaBuses extends Application {
     private final String PAQUETE_VISTA = "/flotabuses/vistas/";
@@ -73,6 +74,15 @@ public class FlotaBuses extends Application {
         try{
             BusController vistaBus = (BusController) cambiarEscena("busesView.fxml", 600, 400);
             vistaBus.setEscenarioPrincipal(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void ventanaDestino(){
+        try{
+            DestinoController vistaDestino = (DestinoController) cambiarEscena("destinosView.fxml", 600, 400);
+            vistaDestino.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
