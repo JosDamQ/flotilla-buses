@@ -49,4 +49,8 @@ public class MenuController implements Initializable{
     public void ventanaCompraBoletos(){
         escenarioPrincipal.ventanaCompraBoletos();
     }
+    
+    public void ventanaLogin(){
+        escenarioPrincipal.ventanaLogin();
+    }
 }
