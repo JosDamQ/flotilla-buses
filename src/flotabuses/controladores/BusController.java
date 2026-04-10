@@ -26,7 +26,14 @@ import flotabuses.enums.Operaciones;
 import java.util.Optional;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
-import javax.swing.JOptionPane;
+import flotabuses.servicios.BusService;
+import flotabuses.enums.EstadoBus;
+import flotabuses.enums.TipoBus;
+import flotabuses.main.FlotaBuses;
+import flotabuses.modelos.Bus;
+import javafx.collections.FXCollections;
+import javafx.scene.control.cell.PropertyValueFactory;
+
 
 /**
  *
@@ -35,6 +42,8 @@ import javax.swing.JOptionPane;
 public class BusController implements Initializable{
     private FlotaBuses escenarioPrincipal;
     private Operaciones tipoOperacion = Operaciones.NINGUNO;
+    
+    private BusService busService = BusService.getInstance();
     
     @FXML
     private Button btnEditar;
@@ -46,24 +55,24 @@ public class BusController implements Initializable{
     private Button btnReporte;
     @FXML
     private Button btnCSV;
-    @FXML
-    private ComboBox<?> cmbEstado;
-    @FXML
-    private ComboBox<?> cmbTipo;
-    @FXML
-    private TableColumn<?, ?> colCapacidad;
-    @FXML
-    private TableColumn<?, ?> colCodigoBus;
-    @FXML
-    private TableColumn<?, ?> colColor;
-    @FXML
-    private TableColumn<?, ?> colDescripcion;
-    @FXML
-    private TableColumn<?, ?> colEstado;
-    @FXML
-    private TableColumn<?, ?> colPlaca;
-    @FXML
-    private TableColumn<?, ?> colTipo;
+    @FXML 
+    private ComboBox<EstadoBus> cmbEstado;
+    @FXML 
+    private ComboBox<TipoBus>   cmbTipo;
+    @FXML 
+    private TableColumn<Bus, Integer>  colCodigoBus;
+    @FXML 
+    private TableColumn<Bus, String>   colPlaca;
+    @FXML 
+    private TableColumn<Bus, String>   colTipo;
+    @FXML 
+    private TableColumn<Bus, Integer>  colCapacidad;
+    @FXML 
+    private TableColumn<Bus, String>   colColor;
+    @FXML 
+    private TableColumn<Bus, String>   colEstado;
+    @FXML 
+    private TableColumn<Bus, String>   colDescripcion;
     @FXML
     private ImageView imgEditar;
     @FXML
@@ -75,7 +84,7 @@ public class BusController implements Initializable{
     @FXML
     private ImageView imgCSV;
     @FXML
-    private TableView<?> tblBuses;
+    private TableView<Bus> tblBuses;
     @FXML
     private TextField txtCapacidad;
     @FXML
@@ -87,9 +96,10 @@ public class BusController implements Initializable{
             
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Aqui vamos a cargar datos
+        cmbTipo.setItems(FXCollections.observableArrayList(TipoBus.values()));
+        cmbEstado.setItems(FXCollections.observableArrayList(EstadoBus.values()));
+        
         cargarDatos();
-        // Setear los combo box
     }
     
     public FlotaBuses getEscenarioPrincipal() {
@@ -105,7 +115,14 @@ public class BusController implements Initializable{
     }
     
     public void cargarDatos() {
-        
+        tblBuses.setItems(busService.obtenerTodos());
+        colCodigoBus.setCellValueFactory(new PropertyValueFactory<>("codigoBus"));
+        colPlaca.setCellValueFactory(new PropertyValueFactory<>("placa"));
+        colTipo.setCellValueFactory(new PropertyValueFactory<>("tipo"));
+        colCapacidad.setCellValueFactory(new PropertyValueFactory<>("capacidad"));
+        colColor.setCellValueFactory(new PropertyValueFactory<>("color"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+        colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
     }
     
     public void nuevo(){
@@ -125,33 +142,61 @@ public class BusController implements Initializable{
                 break;
              
             case GUARDAR:
-                if (txtPlaca.getText().length() <= 0 ||
+                if (txtPlaca.getText().trim().isEmpty() ||
                     cmbTipo.getValue() == null ||
-                    txtCapacidad.getText().length() <= 0 ||
-                    txtColor.getText().length() <= 0 ||
+                    txtCapacidad.getText().trim().isEmpty() ||
+                    txtColor.getText().trim().isEmpty() ||
                     cmbEstado.getValue() == null ||
-                    txtDescripcion.getText().length() <= 0)
-                {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Campos vacios");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Debes ingresar todos los datos");
-                    alert.showAndWait();
-                } else {
-                    // Funcion de Guardar
-                    // COLOCAR AQUI
-                    limpiarControles();
-                    desactivarControles();
-                    btnNuevo.setText("Nuevo");
-                    btnEliminar.setText("Eliminar");
-                    btnEditar.setDisable(false);
-                    btnReporte.setDisable(false);
-                    btnCSV.setDisable(false);
-                    imgNuevo.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Agregar.png")));
-                    imgEliminar.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Quitar.png")));
-                    tipoOperacion = Operaciones.NINGUNO;
-                    cargarDatos();
+                    txtDescripcion.getText().trim().isEmpty()) {
+ 
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Campos vacíos", "Debes ingresar todos los datos.");
+                    return;
+                } 
+                
+                int capacidad;
+                try {
+                    capacidad = Integer.parseInt(txtCapacidad.getText().trim());
+                } catch (NumberFormatException e) {
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Capacidad inválida", "La capacidad debe ser un número entero.");
+                    return;
                 }
+ 
+                // Intentar guardar — el servicio valida placa única y capacidad por tipo
+                try {
+                    boolean guardado = busService.crear(
+                        txtPlaca.getText().trim(),
+                        cmbTipo.getValue(),
+                        capacidad,
+                        txtColor.getText().trim(),
+                        cmbEstado.getValue(),
+                        txtDescripcion.getText().trim()
+                    );
+ 
+                    if (!guardado) {
+                        mostrarAlerta(Alert.AlertType.WARNING,
+                            "Placa duplicada", "Ya existe un bus con esa placa.");
+                        return;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Capacidad fuera del rango permitido para el tipo
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", e.getMessage());
+                    return;
+                }
+ 
+                limpiarControles();
+                desactivarControles();
+                btnNuevo.setText("Nuevo");
+                btnEliminar.setText("Eliminar");
+                btnEditar.setDisable(false);
+                btnReporte.setDisable(false);
+                btnCSV.setDisable(false);
+                imgNuevo.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Agregar.png")));
+                imgEliminar.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Quitar.png")));
+                tipoOperacion = Operaciones.NINGUNO;
+                cargarDatos();
+                
                 break;
         }
     }
@@ -172,32 +217,33 @@ public class BusController implements Initializable{
                 cargarDatos();
                 break;
             default:
-                if(tblBuses.getSelectionModel().getSelectedItem() != null){
-                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                    alert.setTitle("Eliminar Bus");
-                    alert.setHeaderText(null);
-                    alert.setContentText("¿Estas seguro de eliminar el registro?");
-                    
-                    Optional<ButtonType> resultado = alert.showAndWait();
-                    
-                    if (resultado.isPresent() && resultado.get() == ButtonType.OK){
-                        // Funcion de borrado va a ir aqui
+                Bus seleccionado = tblBuses.getSelectionModel().getSelectedItem();
+                if (seleccionado != null) {
+                    Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirmacion.setTitle("Eliminar Bus");
+                    confirmacion.setHeaderText(null);
+                    confirmacion.setContentText(
+                        "¿Estás seguro de eliminar el bus con placa " +
+                        seleccionado.getPlaca() + "?"
+                    );
+                    Optional<ButtonType> resultado = confirmacion.showAndWait();
+ 
+                    if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+                        busService.eliminar(seleccionado.getPlaca());
+                        limpiarControles();
+                        cargarDatos();
                     } else {
                         desactivarControles();
                         limpiarControles();
                     }
                 } else {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Advertencia");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Debes de seleccionar un dato");
-                    alert.showAndWait();
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Advertencia", "Debes seleccionar un bus primero.");
                 }
         }
     }
     
     public void editar() {
-        System.out.println("Editar");
         switch(tipoOperacion){
             case NINGUNO:
                 if(tblBuses.getSelectionModel().getSelectedItem() != null) {
@@ -210,19 +256,51 @@ public class BusController implements Initializable{
                     imgReporte.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Cancel.png")));
                     activarControles();
                     cmbTipo.setDisable(true);
-                    cmbEstado.setEditable(true);
+                    txtPlaca.setEditable(false);
+                    //cmbEstado.setEditable(true);
                     tipoOperacion = Operaciones.ACTUALIZAR;
                 } else {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("Advertencia");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Debes de seleccionar un dato");
-                    alert.showAndWait();
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Advertencia", "Debes seleccionar un bus primero.");
                 }
                 break;
             
             case ACTUALIZAR:
-                // Funcion para actualizar va aqui
+                
+                // Validar campos
+                if (txtCapacidad.getText().trim().isEmpty() ||
+                    txtColor.getText().trim().isEmpty() ||
+                    cmbEstado.getValue() == null ||
+                    txtDescripcion.getText().trim().isEmpty()) {
+ 
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Campos vacíos", "Debes ingresar todos los datos.");
+                    return;
+                }
+ 
+                int capacidadEdit;
+                try {
+                    capacidadEdit = Integer.parseInt(txtCapacidad.getText().trim());
+                } catch (NumberFormatException e) {
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Capacidad inválida", "La capacidad debe ser un número entero.");
+                    return;
+                }
+ 
+                try {
+                    busService.actualizar(
+                        txtPlaca.getText().trim(),
+                        capacidadEdit,
+                        txtColor.getText().trim(),
+                        cmbEstado.getValue(),
+                        txtDescripcion.getText().trim()
+                    );
+                } catch (IllegalArgumentException e) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", e.getMessage());
+                    return;
+                }
+                
+                tblBuses.refresh();
                 btnEditar.setText("Editar");
                 btnReporte.setText("Reporte");
                 btnNuevo.setDisable(false);
@@ -245,7 +323,7 @@ public class BusController implements Initializable{
                 // FUNCION DE REPORTE VA A IR AQUI
 
                 limpiarControles();
-            break;
+                break;
             case ACTUALIZAR:
                 limpiarControles();
                 desactivarControles();
@@ -268,10 +346,23 @@ public class BusController implements Initializable{
         //FUNCIONALIDAD DE CARGA DE CSV VA A IR AQUI
     }
     
+    private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+    
     public void seleccionarElemento(){
-        System.out.println("Seleccionar elemento");
-        if(tblBuses.getSelectionModel().getSelectedItem() != null) {
-            
+        Bus seleccionado = tblBuses.getSelectionModel().getSelectedItem();
+        if (seleccionado != null) {
+            txtPlaca.setText(seleccionado.getPlaca());
+            cmbTipo.getSelectionModel().select(seleccionado.getTipo());
+            txtCapacidad.setText(String.valueOf(seleccionado.getCapacidad()));
+            txtColor.setText(seleccionado.getColor());
+            cmbEstado.getSelectionModel().select(seleccionado.getEstado());
+            txtDescripcion.setText(seleccionado.getDescripcion());
         }
     }
     
