@@ -63,6 +63,15 @@
                   </ImageView>
                </graphic>
             </Button>
+            <Button fx:id="btnCSV" contentDisplay="TOP" mnemonicParsing="false" onAction="#CSV" prefHeight="100.0" prefWidth="111.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Carga CSV">
+               <graphic>
+                  <ImageView fx:id="imgCSV" fitHeight="82.0" fitWidth="74.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/CSV.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
          </children>
       </HBox>
       <Pane layoutX="-123.0" layoutY="-127.0" prefHeight="377.0" prefWidth="123.0" rotate="90.0" style="-fx-background-color: #ddaca0; -fx-background-radius: 100 100 50 50;">
