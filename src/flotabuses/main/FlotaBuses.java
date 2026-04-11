@@ -65,7 +65,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaCliente(){
         try{
-            ClienteController vistaCliente = (ClienteController) cambiarEscena("clientesView.fxml", 600, 400);
+            ClienteController vistaCliente = (ClienteController) cambiarEscena("clientesView.fxml", 890, 440);
             vistaCliente.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,7 +92,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaAsignacionBusDestino(){
         try{
-            AsignacionBusDestinoController vistaAsignacionBusDestinoController = (AsignacionBusDestinoController) cambiarEscena("asignacionBusDestinoView.fxml", 600, 400);
+            AsignacionBusDestinoController vistaAsignacionBusDestinoController = (AsignacionBusDestinoController) cambiarEscena("asignacionBusDestinoView.fxml", 920, 440);
             vistaAsignacionBusDestinoController.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();

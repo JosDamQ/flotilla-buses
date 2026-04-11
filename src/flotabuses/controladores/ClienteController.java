@@ -8,6 +8,7 @@ import flotabuses.main.FlotaBuses;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 
 /**
  *
@@ -30,5 +31,49 @@ public class ClienteController implements Initializable{
     
     public void menuPrincipal(){
         escenarioPrincipal.menuPrincipal();
+    }
+    
+    public void nuevo() {
+        
+    }
+    
+    public void eliminar() {
+        
+    }
+    
+    public void editar() {
+        
+    }
+    
+    public void reporte(){
+        
+    }
+    
+    public void CSV(){
+        
+    }
+    
+    public void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje){
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+    
+    public void seleccionarElemento(){
+        
+    }
+    
+    public void desactivarControles(){
+        
+    }
+    
+    public void activarControles(){
+        
+    }
+    
+    public void limpiarControles(){
+        
     }
 }
