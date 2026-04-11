@@ -25,7 +25,7 @@
       <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#84b4d4" height="449.0" layoutX="284.0" stroke="#84b4d4" strokeType="INSIDE" width="654.0" />
       <Ellipse fill="#dde4ef" layoutX="193.0" layoutY="146.0" radiusX="357.0" radiusY="422.0" rotate="-36.9" stroke="#dde4ef" strokeType="INSIDE" />
       <Ellipse fill="#54a4d3" layoutX="219.0" layoutY="492.0" radiusX="374.0" radiusY="213.0" rotate="-167.5" stroke="#54a4d3" strokeType="INSIDE" />
-      <HBox layoutX="174.0" layoutY="338.0" prefHeight="96.0" prefWidth="474.0">
+      <HBox layoutX="174.0" layoutY="338.0" prefHeight="104.0" prefWidth="546.0">
          <children>
             <Button fx:id="btnNuevo" contentDisplay="TOP" mnemonicParsing="false" onAction="#nuevo" prefHeight="100.0" prefWidth="111.0" styleClass="button1" stylesheets="@../utils/FlotaBuses.css" text="Nuevo">
                <graphic>

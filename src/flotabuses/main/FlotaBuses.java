@@ -83,7 +83,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaDestino(){
         try{
-            DestinoController vistaDestino = (DestinoController) cambiarEscena("destinosView.fxml", 600, 400);
+            DestinoController vistaDestino = (DestinoController) cambiarEscena("destinosView.fxml", 910, 440);
             vistaDestino.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
