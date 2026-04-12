@@ -89,13 +89,12 @@
       </ImageView>
       <TableView fx:id="tblClientes" layoutX="125.0" layoutY="125.0" onKeyReleased="#seleccionarElemento" onMouseClicked="#seleccionarElemento" prefHeight="200.0" prefWidth="682.0" stylesheets="@../utils/FlotaBuses.css">
         <columns>
-          <TableColumn fx:id="colCodigoBus" prefWidth="79.33331298828125" text="CodBus" />
-            <TableColumn fx:id="colPlaca" prefWidth="146.0" text="Placa" />
-            <TableColumn fx:id="colTipo" prefWidth="168.0" text="Tipo Bus" />
-            <TableColumn fx:id="colCapacidad" prefWidth="75.0" text="Capacidad" />
-            <TableColumn fx:id="colColor" prefWidth="75.0" text="Color" />
-            <TableColumn fx:id="colEstado" prefWidth="75.0" text="Estado" />
-            <TableColumn fx:id="colDescripcion" prefWidth="75.0" text="Descripcion" />
+          <TableColumn fx:id="colCodigoCliente" prefWidth="83.5" text="Cod Cliente" />
+            <TableColumn fx:id="colNombre" prefWidth="102.0" text="Nombre" />
+            <TableColumn fx:id="colApellido" prefWidth="125.0" text="Apellido" />
+            <TableColumn fx:id="colDPI" prefWidth="158.0" text="DPI" />
+            <TableColumn fx:id="colEmail" prefWidth="113.0" text="Email" />
+            <TableColumn fx:id="colPassword" prefWidth="99.5" text="Password" />
         </columns>
       </TableView>
       <GridPane layoutX="190.0" layoutY="18.0" prefHeight="89.0" prefWidth="592.0">
