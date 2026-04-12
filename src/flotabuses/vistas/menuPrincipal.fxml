@@ -9,7 +9,7 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="498.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="flotabuses.controladores.MenuController">
    <children>
-      <ImageView fitHeight="500.0" fitWidth="498.0" layoutY="-28.0" pickOnBounds="true" preserveRatio="true">
+      <ImageView fitHeight="498.0" fitWidth="508.0" layoutY="-28.0" pickOnBounds="true" preserveRatio="true">
          <image>
             <Image url="@../images/ImgMenu.png" />
          </image>
@@ -20,8 +20,8 @@
             <items>
                   <MenuItem mnemonicParsing="false" onAction="#ventanaClientes" text="Clientes" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaBus" text="Buses" />
-                  <MenuItem mnemonicParsing="false" onAction="#ventanaDestino"  text="Destinos" />
-                  <MenuItem mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController"  text="Asignar bus a Destino" />
+                  <MenuItem mnemonicParsing="false" onAction="#ventanaDestino" text="Destinos" />
+                  <MenuItem mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController" text="Asignar bus a Destino" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaCompraBoletos" text="Compra de Boletos" />
                   <!--ESTA EN VEREMOS YA QUE NO LO PIDE EL DOC-->
                   <!--<MenuItem mnemonicParsing="false" text="Usuarios" />-->

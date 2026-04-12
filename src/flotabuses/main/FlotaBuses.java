@@ -56,7 +56,7 @@ public class FlotaBuses extends Application {
     
     public void menuPrincipal(){
         try{
-            MenuController vistaMenu = (MenuController) cambiarEscena("menuPrincipal.fxml", 600, 400);
+            MenuController vistaMenu = (MenuController) cambiarEscena("menuPrincipal.fxml", 497, 400);
             vistaMenu.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
