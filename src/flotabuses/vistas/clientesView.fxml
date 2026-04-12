@@ -92,8 +92,8 @@
           <TableColumn fx:id="colCodigoCliente" prefWidth="83.5" text="Cod Cliente" />
             <TableColumn fx:id="colNombre" prefWidth="102.0" text="Nombre" />
             <TableColumn fx:id="colApellido" prefWidth="125.0" text="Apellido" />
-            <TableColumn fx:id="colDPI" prefWidth="158.0" text="DPI" />
-            <TableColumn fx:id="colEmail" prefWidth="113.0" text="Email" />
+            <TableColumn fx:id="colDPI" prefWidth="119.0" text="DPI" />
+            <TableColumn fx:id="colEmail" prefWidth="152.0" text="Email" />
             <TableColumn fx:id="colPassword" prefWidth="99.5" text="Password" />
         </columns>
       </TableView>
