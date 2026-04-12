@@ -89,12 +89,14 @@ public class Bus {
  
     @Override
     public String toString() {
-        return "Bus{" +
-               "codigo=" + codigoBus +
-               ", placa='" + placa + '\'' +
-               ", tipo=" + tipo +
-               ", capacidad=" + capacidad +
-               ", estado=" + estado +
-               '}';
+//        return "Bus{" +
+//               "codigo=" + codigoBus +
+//               ", placa='" + placa + '\'' +
+//               ", tipo=" + tipo +
+//               ", capacidad=" + capacidad +
+//               ", estado=" + estado +
+//               '}';
+        
+        return placa + " | " + tipo + " | Cap: " + capacidad;
     }
 }

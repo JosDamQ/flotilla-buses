@@ -68,12 +68,13 @@ public class Destino {
  
     @Override
     public String toString() {
-        return "Destino{" +
-               "codigo=" + codigoDestino +
-               ", nombre='" + nombre + '\'' +
-               ", fechaSalida=" + fechaSalida +
-               ", costo=" + costoBoleto +
-               ", estado=" + estado +
-               '}';
+//        return "Destino{" +
+//               "codigo=" + codigoDestino +
+//               ", nombre='" + nombre + '\'' +
+//               ", fechaSalida=" + fechaSalida +
+//               ", costo=" + costoBoleto +
+//               ", estado=" + estado +
+//               '}';
+        return nombre.getNombreMostrar() + " | " + fechaSalida + " | " + costoBoleto;
     }
 }
