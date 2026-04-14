@@ -15,3 +15,6 @@ Desktop.ini
 # Java compilado
 *.class
 *.jar
+
+# Claude Code workspace
+.claude/
