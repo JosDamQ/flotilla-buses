@@ -16,12 +16,12 @@
       </ImageView>
       <MenuBar layoutY="1.0" stylesheets="@../utils/FlotaBuses.css">
         <menus>
-          <Menu mnemonicParsing="false" text="Módulos">
+          <Menu fx:id="mnuModulos" mnemonicParsing="false" text="Módulos">
             <items>
                   <MenuItem mnemonicParsing="false" onAction="#ventanaClientes" text="Clientes" />
-                  <MenuItem mnemonicParsing="false" onAction="#ventanaBus" text="Buses" />
-                  <MenuItem mnemonicParsing="false" onAction="#ventanaDestino" text="Destinos" />
-                  <MenuItem mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController" text="Asignar bus a Destino" />
+                  <MenuItem fx:id="mnuItemBuses" mnemonicParsing="false" onAction="#ventanaBus" text="Buses" />
+                  <MenuItem fx:id="mnuItemDestinos" mnemonicParsing="false" onAction="#ventanaDestino" text="Destinos" />
+                  <MenuItem fx:id="mnuItemAsignaciones" mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController" text="Asignar bus a Destino" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaCompraBoletos" text="Compra de Boletos" />
                   <!--ESTA EN VEREMOS YA QUE NO LO PIDE EL DOC-->
                   <!--<MenuItem mnemonicParsing="false" text="Usuarios" />-->
