@@ -5,6 +5,7 @@
 package flotabuses.controladores;
 
 import flotabuses.main.FlotaBuses;
+import flotabuses.modelos.Usuario;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.fxml.Initializable;
@@ -15,17 +16,25 @@ import javafx.fxml.Initializable;
  */
 public class MenuController implements Initializable{
     private FlotaBuses escenarioPrincipal;
+    private Usuario usuarioActual;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        
+
     }
-    
+
     public FlotaBuses getEscenarioPrincipal() {
         return escenarioPrincipal;
     }
-    
+
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
+    }
+
+    public Usuario getUsuarioActual() { return usuarioActual; }
+
+    public void setUsuarioActual(Usuario usuario) {
+        this.usuarioActual = usuario;
     }
     
     // todas las vistas a crear
