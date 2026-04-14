@@ -4,35 +4,37 @@
  */
 package flotabuses.controladores;
 
+import flotabuses.enums.EstadoBus;
+import flotabuses.enums.Operaciones;
+import flotabuses.enums.TipoBus;
+import flotabuses.estructuras.NodoLista;
 import flotabuses.main.FlotaBuses;
+import flotabuses.modelos.Bus;
+import flotabuses.servicios.BusService;
+import flotabuses.servicios.ReporteService;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintWriter;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.ResourceBundle;
-import javafx.fxml.Initializable;
-
-
-import javafx.event.ActionEvent;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
-
-import flotabuses.enums.Operaciones;
-import java.util.Optional;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import flotabuses.servicios.BusService;
-import flotabuses.enums.EstadoBus;
-import flotabuses.enums.TipoBus;
-import flotabuses.main.FlotaBuses;
-import flotabuses.modelos.Bus;
-import javafx.collections.FXCollections;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.FileChooser;
 
 
 /**
@@ -108,6 +110,11 @@ public class BusController implements Initializable{
     
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
+        if (escenarioPrincipal.getUsuarioActual() != null
+                && escenarioPrincipal.getUsuarioActual().esOperador()) {
+            btnCSV.setVisible(false);
+            btnCSV.setManaged(false);
+        }
     }
     
     public void menuPrincipal(){
@@ -316,12 +323,22 @@ public class BusController implements Initializable{
         }
     }
     
-    public void reporte(){
-        System.out.println("Reporte");
-        switch(tipoOperacion) {
-            case NINGUNO:  
-                // FUNCION DE REPORTE VA A IR AQUI
-
+    public void reporte() {
+        switch (tipoOperacion) {
+            case NINGUNO:
+                ButtonType btnAsc  = new ButtonType("Ascendente");
+                ButtonType btnDesc = new ButtonType("Descendente");
+                ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                alerta.setTitle("Reporte de Buses");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Seleccione el orden por placa:");
+                alerta.getButtonTypes().setAll(btnAsc, btnDesc, btnCan);
+                Optional<ButtonType> res = alerta.showAndWait();
+                if (res.isPresent()) {
+                    if (res.get() == btnAsc)  ReporteService.getInstance().reporteBuses(true);
+                    else if (res.get() == btnDesc) ReporteService.getInstance().reporteBuses(false);
+                }
                 limpiarControles();
                 break;
             case ACTUALIZAR:
@@ -335,15 +352,80 @@ public class BusController implements Initializable{
                 imgEditar.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Edit.png")));
                 imgReporte.setImage(new Image(getClass().getResourceAsStream("/flotabuses/images/Reporte.png")));
                 tipoOperacion = Operaciones.NINGUNO;
+                break;
         }
-        
-        
     }
-    
+
     public void CSV() {
-        System.out.println("CSV");
-        
-        //FUNCIONALIDAD DE CARGA DE CSV VA A IR AQUI
+        ButtonType btnImp = new ButtonType("Importar");
+        ButtonType btnExp = new ButtonType("Exportar");
+        ButtonType btnCan = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("CSV — Buses");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Qué deseas hacer?");
+        alerta.getButtonTypes().setAll(btnImp, btnExp, btnCan);
+        Optional<ButtonType> res = alerta.showAndWait();
+        if (!res.isPresent()) return;
+        if (res.get() == btnImp) importarCSV();
+        else if (res.get() == btnExp) exportarCSV();
+    }
+
+    private void importarCSV() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Seleccionar FlotillaBuses.csv");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+        int ok = 0, err = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
+            br.readLine(); // saltar encabezado
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] p = linea.split(",", -1);
+                if (p.length < 5) { err++; continue; }
+                try {
+                    // Formato: Placa, Tipo, Capacidad, Color, Estado
+                    String placa = p[0].trim();
+                    TipoBus tipo = TipoBus.valueOf(p[1].trim().toUpperCase());
+                    int capacidad = Integer.parseInt(p[2].trim());
+                    String color  = p[3].trim();
+                    EstadoBus estado = EstadoBus.valueOf(p[4].trim().toUpperCase());
+                    String desc = p.length > 5 ? p[5].trim() : "";
+                    if (busService.crear(placa, tipo, capacidad, color, estado, desc)) ok++;
+                    else err++;
+                } catch (Exception e) { err++; }
+            }
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
+            return;
+        }
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
+            "Importados: " + ok + " | Errores: " + err);
+        cargarDatos();
+    }
+
+    private void exportarCSV() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Guardar FlotillaBuses.csv");
+        fc.setInitialFileName("FlotillaBuses.csv");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+            pw.println("Placa,Tipo,Capacidad,Color,Estado,Descripcion");
+            NodoLista nodo = busService.getLista().getCabeza();
+            while (nodo != null) {
+                Bus b = (Bus) nodo.dato;
+                pw.println(b.getPlaca() + "," + b.getTipo() + "," + b.getCapacidad()
+                    + "," + b.getColor() + "," + b.getEstado() + "," + b.getDescripcion());
+                nodo = nodo.siguiente;
+            }
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Exportación completa",
+                "Archivo guardado: " + archivo.getName());
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error escribiendo archivo: " + e.getMessage());
+        }
     }
     
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {

@@ -58,6 +58,7 @@ public class FlotaBuses extends Application {
     
     public Usuario getUsuarioActual() { return usuarioActual; }
     public void setUsuarioActual(Usuario usuario) { this.usuarioActual = usuario; }
+    public Stage getStage() { return escenarioPrincipal; }
 
     public void menuPrincipal(){
         try{
@@ -107,7 +108,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaCompraBoletos(){
         try{
-            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 600, 400);
+            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 890, 440);
             vistaCompraBoletos.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();

@@ -9,7 +9,6 @@ import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.fxml.Initializable;
 
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -18,22 +17,29 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 
 import flotabuses.enums.Operaciones;
 import java.util.Optional;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import flotabuses.servicios.DestinoService;
-import flotabuses.main.FlotaBuses;
+import flotabuses.servicios.ReporteService;
 import flotabuses.enums.NombreDestino;
 import flotabuses.enums.EstadoDestino;
 import flotabuses.modelos.Destino;
+import flotabuses.estructuras.NodoLista;
 import javafx.collections.FXCollections;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
+import javafx.stage.FileChooser;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  *
@@ -108,6 +114,11 @@ public class DestinoController implements Initializable{
     
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
+        flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
+        if (u != null && u.getRol() == flotabuses.enums.RolUsuario.OPERADOR) {
+            btnCSV.setVisible(false);
+            btnCSV.setManaged(false);
+        }
     }
     
     public void menuPrincipal(){
@@ -319,8 +330,18 @@ public class DestinoController implements Initializable{
     public void reporte() {
         switch(tipoOperacion) {
             case NINGUNO:
-                // LLAMADO DEL SERVICIO DE REPORTE VA A IR AQUI
-                
+                Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+                dialogo.setTitle("Reporte de Destinos");
+                dialogo.setHeaderText("¿En qué orden deseas el reporte?");
+                ButtonType btnAsc  = new ButtonType("Ascendente");
+                ButtonType btnDesc = new ButtonType("Descendente");
+                ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                dialogo.getButtonTypes().setAll(btnAsc, btnDesc, btnCancelar);
+                Optional<ButtonType> resp = dialogo.showAndWait();
+                if (resp.isPresent() && resp.get() != btnCancelar) {
+                    boolean ascendente = resp.get() == btnAsc;
+                    ReporteService.getInstance().reporteDestinos(ascendente);
+                }
                 limpiarControles();
                 break;
             case ACTUALIZAR:
@@ -338,7 +359,92 @@ public class DestinoController implements Initializable{
     }
     
     public void CSV() {
-        System.out.println("CSV");
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("CSV - Destinos");
+        dialogo.setHeaderText("¿Qué acción deseas realizar?");
+        ButtonType btnImportar = new ButtonType("Importar");
+        ButtonType btnExportar = new ButtonType("Exportar");
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnImportar, btnExportar, btnCancelar);
+        Optional<ButtonType> resp = dialogo.showAndWait();
+        if (resp.isPresent()) {
+            if (resp.get() == btnImportar) importarCSV();
+            else if (resp.get() == btnExportar) exportarCSV();
+        }
+    }
+
+    private void importarCSV() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Importar Destinos CSV");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = chooser.showOpenDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+
+        int importados = 0, errores = 0;
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        try (BufferedReader br = new BufferedReader(
+                new FileReader(archivo, StandardCharsets.UTF_8))) {
+            String linea = br.readLine(); // saltar encabezado
+            while ((linea = br.readLine()) != null) {
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
+                String[] p = linea.split(",", -1);
+                if (p.length < 6) { errores++; continue; }
+                try {
+                    NombreDestino nombre = null;
+                    for (NombreDestino nd : NombreDestino.values()) {
+                        if (nd.getNombreMostrar().equalsIgnoreCase(p[1].trim())) {
+                            nombre = nd; break;
+                        }
+                    }
+                    if (nombre == null) { errores++; continue; }
+                    LocalDate fecha = LocalDate.parse(p[2].trim(), fmt);
+                    double costo    = Double.parseDouble(p[3].trim());
+                    EstadoDestino estado = EstadoDestino.valueOf(p[4].trim().toUpperCase());
+                    String desc   = p[5].trim();
+                    boolean ok = destinoService.crear(nombre, fecha, costo, estado, desc);
+                    if (ok) importados++; else errores++;
+                } catch (Exception e) { errores++; }
+            }
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo leer el archivo: " + e.getMessage());
+            return;
+        }
+        cargarDatos();
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
+            "Importados: " + importados + "  |  Errores/omitidos: " + errores);
+    }
+
+    private void exportarCSV() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Exportar Destinos CSV");
+        chooser.setInitialFileName("Destinos.csv");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = chooser.showSaveDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+
+        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+            pw.println("Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción");
+            NodoLista actual = destinoService.getLista().getCabeza();
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            while (actual != null) {
+                Destino d = (Destino) actual.dato;
+                pw.printf("%d,%s,%s,%.2f,%s,%s%n",
+                    d.getCodigoDestino(),
+                    d.getNombre().getNombreMostrar(),
+                    d.getFechaSalida().format(fmt),
+                    d.getCostoBoleto(),
+                    d.getEstado().name(),
+                    d.getDescripcion());
+                actual = actual.siguiente;
+            }
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Exportación completa",
+                "Archivo guardado correctamente.");
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo guardar: " + e.getMessage());
+        }
     }
     
     public void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
