@@ -104,12 +104,24 @@ public class CompraBoletos implements Initializable {
     private void configurarComboBoxes() {
         // AsignacionBusDestino: mostrar "Destino → Placa"
         cmbAsignacion.setConverter(new StringConverter<AsignacionBusDestino>() {
-            @Override public String toString(AsignacionBusDestino a) {
+            @Override
+            public String toString(AsignacionBusDestino a) {
                 if (a == null) return "";
-                return a.getDestino().getNombre().getNombreMostrar()
-                     + " → " + a.getBus().getPlaca();
+
+                String destino = a.getDestino().getNombre().getNombreMostrar();
+                String bus = a.getBus().getPlaca();
+
+                // Formato bonito de fecha
+                DateTimeFormatter fmtFecha = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                String fecha = a.getDestino().getFechaSalida().format(fmtFecha);
+
+                return destino + " → " + bus + " | " + fecha;
             }
-            @Override public AsignacionBusDestino fromString(String s) { return null; }
+
+            @Override
+            public AsignacionBusDestino fromString(String s) {
+                return null;
+            }
         });
         cmbAsignacion.setItems(obtenerAsignaciones());
 
