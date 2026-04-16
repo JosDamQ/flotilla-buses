@@ -61,29 +61,84 @@ public class AsignacionBusDestinoService {
      */
     public int guardar(Destino destino, Bus bus, LocalTime hora) {
  
-        // Solo se asignan destinos confirmados
+//        // Solo se asignan destinos confirmados
+//        if (!destino.estaConfirmado()) return 1;
+// 
+//        String filaKey    = destino.getNombre().getNombreMostrar();
+//        String columnaKey = bus.getPlaca();
+// 
+//        // Buscar si ya existe la asignación para este destino+bus
+//        AsignacionBusDestino asignacion =
+//            (AsignacionBusDestino) matriz.buscar(filaKey, columnaKey);
+// 
+//        if (asignacion == null) {
+//            // No existe → crear nueva asignación
+//            asignacion = new AsignacionBusDestino(contadorCodigo, destino, bus);
+//            contadorCodigo++;
+//            boolean horaAgregada = asignacion.agregarHora(hora);
+//            if (!horaAgregada) return 2;
+//            matriz.insertar(filaKey, columnaKey, asignacion);
+//        } else {
+//            // Ya existe → solo agregar la hora nueva
+//            boolean horaAgregada = asignacion.agregarHora(hora);
+//            if (!horaAgregada) return 2;
+//        }
+// 
+//        return 0;
+
         if (!destino.estaConfirmado()) return 1;
- 
+
         String filaKey    = destino.getNombre().getNombreMostrar();
         String columnaKey = bus.getPlaca();
- 
-        // Buscar si ya existe la asignación para este destino+bus
+
+        // ← NUEVA VALIDACIÓN: recorrer toda la columna del bus
+        // para verificar que no tenga conflicto de hora en otro destino
+        NodoCabecera cabCol = matriz.getCabColumnas();
+        while (cabCol != null) {
+            if (cabCol.clave.equalsIgnoreCase(columnaKey)) {
+                // Encontramos la columna de este bus
+                NodoMatriz celda = cabCol.primero;
+                while (celda != null) {
+                    // Ignorar la celda del mismo destino (esa la valida agregarHora)
+                    if (!celda.filaClave.equalsIgnoreCase(filaKey)) {
+                        AsignacionBusDestino otraAsig =
+                            (AsignacionBusDestino) celda.dato;
+                        // Verificar conflicto de hora con este otro destino
+                        flotabuses.estructuras.NodoLista nodoHora =
+                            otraAsig.getHorasDisponibles().getCabeza();
+                        while (nodoHora != null) {
+                            LocalTime horaExistente = (LocalTime) nodoHora.dato;
+                            long diferencia = Math.abs(
+                                hora.toSecondOfDay() - horaExistente.toSecondOfDay()
+                            );
+                            if (diferencia < 3600) {
+                                return 3; // Bus ocupado en otro destino a esa hora
+                            }
+                            nodoHora = nodoHora.siguiente;
+                        }
+                    }
+                    celda = celda.abajo; // ← recorre verticalmente la columna
+                }
+                break;
+            }
+            cabCol = cabCol.siguiente;
+        }
+        // FIN NUEVA VALIDACIÓN
+
         AsignacionBusDestino asignacion =
             (AsignacionBusDestino) matriz.buscar(filaKey, columnaKey);
- 
+
         if (asignacion == null) {
-            // No existe → crear nueva asignación
             asignacion = new AsignacionBusDestino(contadorCodigo, destino, bus);
             contadorCodigo++;
             boolean horaAgregada = asignacion.agregarHora(hora);
             if (!horaAgregada) return 2;
             matriz.insertar(filaKey, columnaKey, asignacion);
         } else {
-            // Ya existe → solo agregar la hora nueva
             boolean horaAgregada = asignacion.agregarHora(hora);
             if (!horaAgregada) return 2;
         }
- 
+
         return 0;
     }
  

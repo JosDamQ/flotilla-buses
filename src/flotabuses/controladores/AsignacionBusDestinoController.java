@@ -173,6 +173,12 @@ public class AsignacionBusDestinoController implements Initializable{
                         "de diferencia respecto a las horas ya asignadas para este bus y destino.");
                     return;
                 }
+                if (resultado == 3) {
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Bus no disponible",
+                        "El bus ya tiene una asignación a esa hora en otro destino.");
+                    return;
+                }
  
                 limpiarControles();
                 desactivarControles();

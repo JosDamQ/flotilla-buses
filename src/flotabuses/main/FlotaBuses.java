@@ -108,7 +108,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaCompraBoletos(){
         try{
-            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 890, 440);
+            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 910, 440);
             vistaCompraBoletos.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();
