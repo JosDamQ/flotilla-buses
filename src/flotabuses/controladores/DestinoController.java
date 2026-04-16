@@ -40,6 +40,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import javafx.scene.control.DateCell;
 
 /**
  *
@@ -102,6 +103,18 @@ public class DestinoController implements Initializable{
     public void initialize(URL location, ResourceBundle resources) {
         cmbNombre.setItems(FXCollections.observableArrayList(NombreDestino.values()));
         cmbEstado.setItems(FXCollections.observableArrayList(EstadoDestino.values()));
+        
+        dtpFechaSalida.setDayCellFactory(picker -> new DateCell() {
+        @Override
+        public void updateItem(LocalDate date, boolean empty) {
+            super.updateItem(date, empty);
+
+            if (date.isBefore(LocalDate.now())) {
+                setDisable(true);
+                setStyle("-fx-background-color: #ffc0cb;");
+            }
+        }
+    });
         
         cargarDatos();
         
