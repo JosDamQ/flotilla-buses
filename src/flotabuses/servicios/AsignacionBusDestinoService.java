@@ -108,11 +108,18 @@ public class AsignacionBusDestinoService {
                             otraAsig.getHorasDisponibles().getCabeza();
                         while (nodoHora != null) {
                             LocalTime horaExistente = (LocalTime) nodoHora.dato;
-                            long diferencia = Math.abs(
-                                hora.toSecondOfDay() - horaExistente.toSecondOfDay()
-                            );
-                            if (diferencia < 3600) {
-                                return 3; // Bus ocupado en otro destino a esa hora
+
+                            // Solo hay conflicto si es la misma fecha Y la hora está muy cerca
+                            boolean mismaFecha = otraAsig.getDestino().getFechaSalida()
+                                    .equals(destino.getFechaSalida());
+
+                            if (mismaFecha) {
+                                long diferencia = Math.abs(
+                                    hora.toSecondOfDay() - horaExistente.toSecondOfDay()
+                                );
+                                if (diferencia < 3600) {
+                                    return 3; // Bus ocupado en otro destino ese mismo día a esa hora
+                                }
                             }
                             nodoHora = nodoHora.siguiente;
                         }
