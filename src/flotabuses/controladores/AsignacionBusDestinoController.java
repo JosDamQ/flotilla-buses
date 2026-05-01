@@ -277,7 +277,7 @@ public class AsignacionBusDestinoController implements Initializable{
                     activarControles();
                     // Destino y bus no se pueden cambiar al editar
                     cmbDestino.setDisable(true);
-                    cmbBus.setDisable(true);
+                    //cmbBus.setDisable(true);
                     tipoOperacion = Operaciones.ACTUALIZAR;
                 } else {
                     mostrarAlerta(Alert.AlertType.WARNING,
@@ -313,6 +313,19 @@ public class AsignacionBusDestinoController implements Initializable{
                         "de diferencia respecto a las otras horas asignadas.");
                     return;
                 }
+                
+                Bus busNuevo = cmbBus.getValue();
+                Bus busOriginal = busServicio.buscarPorPlaca(filaEnEdicion.getPlacaBus());
+                
+                if (!busNuevo.getPlaca().equals(busOriginal.getPlaca())) {
+                    // Obtener la asignación de la matriz
+                    AsignacionBusDestino asig = asignacionServicio.buscar(destino, busOriginal);
+                    if (asig != null) {
+                        // Mover la celda en la matriz al nuevo bus
+                        asignacionServicio.cambiarBus(destino, busOriginal, busNuevo);
+                    }
+                }
+
  
                 tblAsignaciones.refresh();
                 btnEditar.setText("Editar");

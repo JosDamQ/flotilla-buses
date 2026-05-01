@@ -239,6 +239,26 @@ public class AsignacionBusDestinoService {
             bus.getPlaca()
         );
     }
+    
+    public boolean cambiarBus(Destino destino, Bus busViejo, Bus busNuevo) {
+        String filaKey       = destino.getNombre().getNombreMostrar();
+        String columnaVieja  = busViejo.getPlaca();
+        String columnaNueva  = busNuevo.getPlaca();
+
+        // Buscar la asignación existente
+        AsignacionBusDestino asig =
+            (AsignacionBusDestino) matriz.buscar(filaKey, columnaVieja);
+        if (asig == null) return false;
+
+        // Actualizar el bus en el objeto asignación
+        // Al ser referencia, todos los boletos existentes ven el cambio automáticamente
+        asig.setBus(busNuevo);
+
+        // Eliminar de la columna vieja e insertar en la nueva
+        matriz.eliminar(filaKey, columnaVieja);
+        matriz.insertar(filaKey, columnaNueva, asig);
+        return true;
+    }
  
     /*
      * Retorna la matriz directamente.

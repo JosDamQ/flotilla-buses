@@ -232,6 +232,13 @@ public class CompraBoletos implements Initializable {
                         "La hora seleccionada no está disponible en esta asignación.");
                     return;
                 }
+                
+                if (res == 2) {
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Bus lleno",
+                        "Ya no hay lugares disponibles en este bus para esa hora.");
+                    return;
+                }
                 limpiarControles();
                 desactivarControles();
                 btnNuevo.setText("Nuevo");

@@ -35,8 +35,23 @@ public class BoletoService {
      */
     public int crear(AsignacionBusDestino asignacion, Cliente cliente, LocalTime hora) {
         if (!asignacion.tieneHora(hora)) return 1;
+
+        // Contar boletos ya vendidos para esta asignación y hora específica
+        int ocupados = 0;
+        NodoLista actual = listaBoletos.getCabeza();
+        while (actual != null) {
+            Boleto b = (Boleto) actual.dato;
+            if (b.getAsignacion().getCodigoAsignacion() == asignacion.getCodigoAsignacion()
+                    && b.getHoraSeleccionada().equals(hora)) {
+                ocupados++;
+            }
+            actual = actual.siguiente;
+        }
+
+        if (ocupados >= asignacion.getBus().getCapacidad()) return 2; // Bus lleno
+
+        // resto del código que ya tenés...
         Boleto boleto = new Boleto(contadorCodigo, asignacion, cliente, hora);
-        // Clave "HH:mm_0001" permite múltiples boletos a la misma hora
         String clave = boleto.getClaveOrden() + "_" + String.format("%04d", contadorCodigo);
         listaBoletos.insertarOrdenado(clave, boleto);
         contadorCodigo++;
