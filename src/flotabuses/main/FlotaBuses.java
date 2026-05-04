@@ -26,11 +26,13 @@ import flotabuses.controladores.BusController;
 import flotabuses.controladores.DestinoController;
 import flotabuses.controladores.AsignacionBusDestinoController;
 import flotabuses.controladores.CompraBoletos;
+import flotabuses.modelos.Usuario;
 
 public class FlotaBuses extends Application {
     private final String PAQUETE_VISTA = "/flotabuses/vistas/";
     private Stage escenarioPrincipal;
     private Scene escena;
+    private Usuario usuarioActual;
 
     @Override
     public void start(Stage escenarioPrincipal) throws Exception{
@@ -54,10 +56,15 @@ public class FlotaBuses extends Application {
         }
     }
     
+    public Usuario getUsuarioActual() { return usuarioActual; }
+    public void setUsuarioActual(Usuario usuario) { this.usuarioActual = usuario; }
+    public Stage getStage() { return escenarioPrincipal; }
+
     public void menuPrincipal(){
         try{
             MenuController vistaMenu = (MenuController) cambiarEscena("menuPrincipal.fxml", 497, 400);
             vistaMenu.setEscenarioPrincipal(this);
+            vistaMenu.setUsuarioActual(usuarioActual);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -101,7 +108,7 @@ public class FlotaBuses extends Application {
     
     public void ventanaCompraBoletos(){
         try{
-            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 600, 400);
+            CompraBoletos vistaCompraBoletos = (CompraBoletos) cambiarEscena("compraBoletosView.fxml", 910, 440);
             vistaCompraBoletos.setEscenarioPrincipal(this);
         } catch (Exception e) {
             e.printStackTrace();

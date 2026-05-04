@@ -8,13 +8,21 @@ import flotabuses.enums.Operaciones;
 import flotabuses.main.FlotaBuses;
 import flotabuses.modelos.Cliente;
 import flotabuses.servicios.ClienteService;
+import flotabuses.servicios.ReporteService;
+import flotabuses.estructuras.NodoLista;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintWriter;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -22,6 +30,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.FileChooser;
 
 /**
  *
@@ -67,6 +76,11 @@ public class ClienteController implements Initializable{
     
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
+        if (escenarioPrincipal.getUsuarioActual() != null
+                && escenarioPrincipal.getUsuarioActual().esOperador()) {
+            btnCSV.setVisible(false);
+            btnCSV.setManaged(false);
+        }
     }
     
     public void menuPrincipal(){
@@ -260,7 +274,19 @@ public class ClienteController implements Initializable{
     public void reporte(){
         switch (tipoOperacion) {
             case NINGUNO:
-                // FUNCIONALIDAD DE REPORTE VA AQUÍ
+                ButtonType btnAsc  = new ButtonType("Ascendente");
+                ButtonType btnDesc = new ButtonType("Descendente");
+                ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                alerta.setTitle("Reporte de Clientes");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Seleccione el orden por código:");
+                alerta.getButtonTypes().setAll(btnAsc, btnDesc, btnCan);
+                Optional<ButtonType> res = alerta.showAndWait();
+                if (res.isPresent()) {
+                    if (res.get() == btnAsc)  ReporteService.getInstance().reporteClientes(true);
+                    else if (res.get() == btnDesc) ReporteService.getInstance().reporteClientes(false);
+                }
                 limpiarControles();
                 break;
             case ACTUALIZAR:
@@ -277,9 +303,74 @@ public class ClienteController implements Initializable{
                 break;
         }
     }
-    
-    public void CSV(){
-        
+
+    public void CSV() {
+        ButtonType btnImp = new ButtonType("Importar");
+        ButtonType btnExp = new ButtonType("Exportar");
+        ButtonType btnCan = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("CSV — Clientes");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Qué deseas hacer?");
+        alerta.getButtonTypes().setAll(btnImp, btnExp, btnCan);
+        Optional<ButtonType> res = alerta.showAndWait();
+        if (!res.isPresent()) return;
+        if (res.get() == btnImp) importarCSV();
+        else if (res.get() == btnExp) exportarCSV();
+    }
+
+    private void importarCSV() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Seleccionar Clientes.csv");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+        int ok = 0, err = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
+            br.readLine(); // saltar encabezado
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] p = linea.split(",", -1);
+                if (p.length < 5) { err++; continue; }
+                try {
+                    // Formato: Código, Nombre, Identificación, Contraseña, Correo
+                    String[] nombre = p[1].trim().split(" ", 2);
+                    String n = nombre[0];
+                    String a = nombre.length > 1 ? nombre[1] : "";
+                    String dpi      = p[2].trim();
+                    String password = p[3].trim();
+                    String email    = p[4].trim();
+                    if (clienteServicio.crear(n, a, dpi, email, password) == 0) ok++;
+                    else err++;
+                } catch (Exception e) { err++; }
+            }
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
+            return;
+        }
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
+            "Importados: " + ok + " | Errores: " + err);
+        cargarDatos();
+    }
+
+    private void exportarCSV() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Guardar Clientes.csv");
+        fc.setInitialFileName("Clientes.csv");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+            pw.println("Código,Nombre,Identificación,Contraseña,Correo");
+            for (Cliente c : clienteServicio.obtenerTodosAscendente()) {
+                pw.println(c.getCodigoCliente() + "," + c.getNombreCompleto()
+                    + "," + c.getDpi() + "," + c.getPassword() + "," + c.getEmail());
+            }
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Exportación completa",
+                "Archivo guardado: " + archivo.getName());
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error escribiendo archivo: " + e.getMessage());
+        }
     }
     
     public void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje){

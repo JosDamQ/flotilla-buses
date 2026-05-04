@@ -12,6 +12,11 @@ import flotabuses.servicios.AsignacionBusDestinoService;
 import flotabuses.servicios.AsignacionBusDestinoService.FilaAsignacion;
 import flotabuses.servicios.BusService;
 import flotabuses.servicios.DestinoService;
+import flotabuses.servicios.ReporteService;
+import flotabuses.estructuras.NodoCabecera;
+import flotabuses.estructuras.NodoMatriz;
+import flotabuses.modelos.AsignacionBusDestino;
+import flotabuses.estructuras.NodoLista;
 import java.net.URL;
 import java.time.LocalTime;
 import java.util.Optional;
@@ -21,6 +26,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
@@ -28,6 +34,12 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.FileChooser;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 /**
  *
@@ -91,6 +103,11 @@ public class AsignacionBusDestinoController implements Initializable{
     
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
+        flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
+        if (u != null && u.getRol() == flotabuses.enums.RolUsuario.OPERADOR) {
+            btnCSV.setVisible(false);
+            btnCSV.setManaged(false);
+        }
     }
     
     public void menuPrincipal(){
@@ -154,6 +171,12 @@ public class AsignacionBusDestinoController implements Initializable{
                         "Hora inválida",
                         "La hora debe ser desde las 04:00 y con al menos 1 hora " +
                         "de diferencia respecto a las horas ya asignadas para este bus y destino.");
+                    return;
+                }
+                if (resultado == 3) {
+                    mostrarAlerta(Alert.AlertType.WARNING,
+                        "Bus no disponible",
+                        "El bus ya tiene una asignación a esa hora en otro destino.");
                     return;
                 }
  
@@ -254,7 +277,7 @@ public class AsignacionBusDestinoController implements Initializable{
                     activarControles();
                     // Destino y bus no se pueden cambiar al editar
                     cmbDestino.setDisable(true);
-                    cmbBus.setDisable(true);
+                    //cmbBus.setDisable(true);
                     tipoOperacion = Operaciones.ACTUALIZAR;
                 } else {
                     mostrarAlerta(Alert.AlertType.WARNING,
@@ -290,6 +313,19 @@ public class AsignacionBusDestinoController implements Initializable{
                         "de diferencia respecto a las otras horas asignadas.");
                     return;
                 }
+                
+                Bus busNuevo = cmbBus.getValue();
+                Bus busOriginal = busServicio.buscarPorPlaca(filaEnEdicion.getPlacaBus());
+                
+                if (!busNuevo.getPlaca().equals(busOriginal.getPlaca())) {
+                    // Obtener la asignación de la matriz
+                    AsignacionBusDestino asig = asignacionServicio.buscar(destino, busOriginal);
+                    if (asig != null) {
+                        // Mover la celda en la matriz al nuevo bus
+                        asignacionServicio.cambiarBus(destino, busOriginal, busNuevo);
+                    }
+                }
+
  
                 tblAsignaciones.refresh();
                 btnEditar.setText("Editar");
@@ -312,7 +348,7 @@ public class AsignacionBusDestinoController implements Initializable{
     public void reporte(){
         switch (tipoOperacion) {
             case NINGUNO:
-                // FUNCIONALIDAD DE REPORTE VA AQUÍ
+                ReporteService.getInstance().reporteAsignaciones();
                 limpiarControles();
                 break;
             case ACTUALIZAR:
@@ -333,7 +369,108 @@ public class AsignacionBusDestinoController implements Initializable{
     }
     
     public void CSV(){
-        
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("CSV - Asignaciones");
+        dialogo.setHeaderText("¿Qué acción deseas realizar?");
+        ButtonType btnImportar = new ButtonType("Importar");
+        ButtonType btnExportar = new ButtonType("Exportar");
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnImportar, btnExportar, btnCancelar);
+        Optional<ButtonType> resp = dialogo.showAndWait();
+        if (resp.isPresent()) {
+            if (resp.get() == btnImportar) importarCSV();
+            else if (resp.get() == btnExportar) exportarCSV();
+        }
+    }
+
+    private void importarCSV() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Importar Asignaciones CSV");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = chooser.showOpenDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+
+        int importados = 0, errores = 0;
+        try (BufferedReader br = new BufferedReader(
+                new FileReader(archivo, StandardCharsets.UTF_8))) {
+            String linea = br.readLine(); // saltar encabezado
+            while ((linea = br.readLine()) != null) {
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
+                // Código_Asig,Código_Destino,Nombre_Destino,Fecha_salida_destino,
+                // Placa_bus,Tipo_bus,Capacidad_bus,Hora_asignación
+                String[] p = linea.split(",", -1);
+                if (p.length < 8) { errores++; continue; }
+                try {
+                    flotabuses.enums.NombreDestino nombreDestino = null;
+                    for (flotabuses.enums.NombreDestino nd :
+                            flotabuses.enums.NombreDestino.values()) {
+                        if (nd.getNombreMostrar().equalsIgnoreCase(p[2].trim())) {
+                            nombreDestino = nd; break;
+                        }
+                    }
+                    if (nombreDestino == null) { errores++; continue; }
+                    Destino destino = destinoServicio.buscarPorNombre(nombreDestino);
+                    if (destino == null) { errores++; continue; }
+                    Bus bus = busServicio.buscarPorPlaca(p[4].trim());
+                    if (bus == null) { errores++; continue; }
+                    LocalTime hora = LocalTime.parse(p[7].trim());
+                    int res = asignacionServicio.guardar(destino, bus, hora);
+                    if (res == 0) importados++; else errores++;
+                } catch (Exception e) { errores++; }
+            }
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                "No se pudo leer el archivo: " + e.getMessage());
+            return;
+        }
+        cargarDatos();
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
+            "Importadas: " + importados + "  |  Errores/omitidos: " + errores);
+    }
+
+    private void exportarCSV() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Exportar Asignaciones CSV");
+        chooser.setInitialFileName("AsigBusDestino.csv");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File archivo = chooser.showSaveDialog(escenarioPrincipal.getStage());
+        if (archivo == null) return;
+
+        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+            pw.println("Código_Asig,Código_Destino,Nombre_Destino,Fecha_salida_destino," +
+                       "Placa_bus,Tipo_bus,Capacidad_bus,Hora_asignación");
+            NodoCabecera fila = asignacionServicio.getMatriz().getCabFilas();
+            while (fila != null) {
+                NodoMatriz celda = fila.primero;
+                while (celda != null) {
+                    AsignacionBusDestino asig = (AsignacionBusDestino) celda.dato;
+                    NodoLista nodoHora = asig.getHorasDisponibles().getCabeza();
+                    while (nodoHora != null) {
+                        LocalTime hora = (LocalTime) nodoHora.dato;
+                        pw.printf("%d,%d,%s,%s,%s,%s,%d,%s%n",
+                            asig.getCodigoAsignacion(),
+                            asig.getDestino().getCodigoDestino(),
+                            asig.getDestino().getNombre().getNombreMostrar(),
+                            asig.getDestino().getFechaSalida().toString(),
+                            asig.getBus().getPlaca(),
+                            asig.getBus().getTipo().toString(),
+                            asig.getBus().getCapacidad(),
+                            hora.toString());
+                        nodoHora = nodoHora.siguiente;
+                    }
+                    celda = celda.derecha;
+                }
+                fila = fila.siguiente;
+            }
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Exportación completa",
+                "Archivo guardado correctamente.");
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                "No se pudo guardar: " + e.getMessage());
+        }
     }
     
     private flotabuses.enums.NombreDestino buscarNombreDestino(String nombreMostrar) {
