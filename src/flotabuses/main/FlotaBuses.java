@@ -26,6 +26,7 @@ import flotabuses.controladores.BusController;
 import flotabuses.controladores.DestinoController;
 import flotabuses.controladores.AsignacionBusDestinoController;
 import flotabuses.controladores.CompraBoletos;
+import flotabuses.controladores.AboutController;
 import flotabuses.modelos.Usuario;
 
 public class FlotaBuses extends Application {
@@ -115,6 +116,14 @@ public class FlotaBuses extends Application {
         }
     }
 
+    public void ventanaAbout(){
+        try{
+            AboutController vistaAbout = (AboutController) cambiarEscena("aboutView.fxml", 500, 420);
+            vistaAbout.setEscenarioPrincipal(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         launch(args);

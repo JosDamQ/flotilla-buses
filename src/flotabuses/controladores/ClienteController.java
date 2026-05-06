@@ -325,31 +325,62 @@ public class ClienteController implements Initializable{
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        int ok = 0, err = 0;
+        int ok = 0, err = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
             br.readLine(); // saltar encabezado
             String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 5) { err++; continue; }
+                if (p.length < 5) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 5)\n");
+                    continue;
+                }
                 try {
-                    // Formato: Código, Nombre, Identificación, Contraseña, Correo
+                    // Formato: Codigo,Nombre Apellido,DPI,Password,Email
                     String[] nombre = p[1].trim().split(" ", 2);
-                    String n = nombre[0];
-                    String a = nombre.length > 1 ? nombre[1] : "";
+                    String n = nombre[0].trim();
+                    String a = nombre.length > 1 ? nombre[1].trim() : "";
                     String dpi      = p[2].trim();
                     String password = p[3].trim();
                     String email    = p[4].trim();
-                    if (clienteServicio.crear(n, a, dpi, email, password) == 0) ok++;
-                    else err++;
-                } catch (Exception e) { err++; }
+                    if (n.isEmpty() || dpi.isEmpty() || password.isEmpty() || email.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campos vacios detectados\n");
+                        continue;
+                    }
+                    int res = clienteServicio.crear(n, a, dpi, email, password);
+                    if (res == 0) {
+                        ok++;
+                    } else if (res == 1) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": DPI \"").append(dpi).append("\" ya existe\n");
+                    } else {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": email \"").append(email).append("\" ya existe\n");
+                    }
+                } catch (Exception e) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
             return;
         }
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + ok + " | Errores: " + err);
+        String msg = "Importados: " + ok + " | Errores: " + err;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
         cargarDatos();
     }
 

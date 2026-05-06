@@ -377,31 +377,80 @@ public class BusController implements Initializable{
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        int ok = 0, err = 0;
+        int ok = 0, err = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
             br.readLine(); // saltar encabezado
             String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 5) { err++; continue; }
+                if (p.length < 5) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 6)\n");
+                    continue;
+                }
                 try {
-                    // Formato: Placa, Tipo, Capacidad, Color, Estado
                     String placa = p[0].trim();
-                    TipoBus tipo = TipoBus.valueOf(p[1].trim().toUpperCase());
-                    int capacidad = Integer.parseInt(p[2].trim());
+                    TipoBus tipo;
+                    try { tipo = TipoBus.valueOf(p[1].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": tipo invalido \"").append(p[1].trim())
+                            .append("\" (MICROBUS, COUNTY o PULLMAN)\n");
+                        continue;
+                    }
+                    int capacidad;
+                    try { capacidad = Integer.parseInt(p[2].trim()); }
+                    catch (NumberFormatException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": capacidad no es numero \"").append(p[2].trim()).append("\"\n");
+                        continue;
+                    }
                     String color  = p[3].trim();
-                    EstadoBus estado = EstadoBus.valueOf(p[4].trim().toUpperCase());
+                    EstadoBus estado;
+                    try { estado = EstadoBus.valueOf(p[4].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": estado invalido \"").append(p[4].trim())
+                            .append("\" (DISPONIBLE o NO_DISPONIBLE)\n");
+                        continue;
+                    }
                     String desc = p.length > 5 ? p[5].trim() : "";
-                    if (busService.crear(placa, tipo, capacidad, color, estado, desc)) ok++;
-                    else err++;
-                } catch (Exception e) { err++; }
+                    try {
+                        boolean guardado = busService.crear(placa, tipo, capacidad, color, estado, desc);
+                        if (guardado) {
+                            ok++;
+                        } else {
+                            err++;
+                            detalles.append("Fila ").append(fila)
+                                .append(": placa \"").append(placa).append("\" ya existe\n");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": ").append(e.getMessage()).append("\n");
+                    }
+                } catch (Exception e) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
             return;
         }
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + ok + " | Errores: " + err);
+        String msg = "Importados: " + ok + " | Errores: " + err;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
         cargarDatos();
     }
 

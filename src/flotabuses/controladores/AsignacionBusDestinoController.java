@@ -104,7 +104,7 @@ public class AsignacionBusDestinoController implements Initializable{
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
-        if (u != null && u.getRol() == flotabuses.enums.RolUsuario.OPERADOR) {
+        if (u != null && u.esOperador()) {
             btnCSV.setVisible(false);
             btnCSV.setManaged(false);
         }
@@ -391,34 +391,78 @@ public class AsignacionBusDestinoController implements Initializable{
         File archivo = chooser.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        int importados = 0, errores = 0;
+        int importados = 0, errores = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         try (BufferedReader br = new BufferedReader(
                 new FileReader(archivo, StandardCharsets.UTF_8))) {
-            String linea = br.readLine(); // saltar encabezado
+            br.readLine(); // saltar encabezado
+            String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
                 linea = linea.trim();
                 if (linea.isEmpty()) continue;
-                // Código_Asig,Código_Destino,Nombre_Destino,Fecha_salida_destino,
-                // Placa_bus,Tipo_bus,Capacidad_bus,Hora_asignación
+                // Codigo_Asig,Codigo_Destino,Nombre_Destino,Fecha_salida,Placa_bus,Tipo_bus,Capacidad_bus,Hora
                 String[] p = linea.split(",", -1);
-                if (p.length < 8) { errores++; continue; }
+                if (p.length < 8) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 8)\n");
+                    continue;
+                }
                 try {
                     flotabuses.enums.NombreDestino nombreDestino = null;
-                    for (flotabuses.enums.NombreDestino nd :
-                            flotabuses.enums.NombreDestino.values()) {
+                    for (flotabuses.enums.NombreDestino nd : flotabuses.enums.NombreDestino.values()) {
                         if (nd.getNombreMostrar().equalsIgnoreCase(p[2].trim())) {
                             nombreDestino = nd; break;
                         }
                     }
-                    if (nombreDestino == null) { errores++; continue; }
+                    if (nombreDestino == null) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino desconocido \"").append(p[2].trim()).append("\"\n");
+                        continue;
+                    }
                     Destino destino = destinoServicio.buscarPorNombre(nombreDestino);
-                    if (destino == null) { errores++; continue; }
+                    if (destino == null) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino \"").append(p[2].trim())
+                            .append("\" no registrado en el sistema\n");
+                        continue;
+                    }
                     Bus bus = busServicio.buscarPorPlaca(p[4].trim());
-                    if (bus == null) { errores++; continue; }
-                    LocalTime hora = LocalTime.parse(p[7].trim());
+                    if (bus == null) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": bus con placa \"").append(p[4].trim())
+                            .append("\" no encontrado\n");
+                        continue;
+                    }
+                    LocalTime hora;
+                    try { hora = LocalTime.parse(p[7].trim()); }
+                    catch (Exception e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": hora invalida \"").append(p[7].trim())
+                            .append("\" (formato HH:mm)\n");
+                        continue;
+                    }
                     int res = asignacionServicio.guardar(destino, bus, hora);
-                    if (res == 0) importados++; else errores++;
-                } catch (Exception e) { errores++; }
+                    if (res == 0) {
+                        importados++;
+                    } else {
+                        errores++;
+                        String motivo = res == 1 ? "destino no confirmado"
+                                      : res == 2 ? "hora invalida o muy cercana a otra asignada"
+                                      : "bus no disponible en esa hora";
+                        detalles.append("Fila ").append(fila)
+                            .append(": no se pudo asignar (").append(motivo).append(")\n");
+                    }
+                } catch (Exception e) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error inesperado - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error",
@@ -426,8 +470,10 @@ public class AsignacionBusDestinoController implements Initializable{
             return;
         }
         cargarDatos();
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importadas: " + importados + "  |  Errores/omitidos: " + errores);
+        String msg = "Importadas: " + importados + "  |  Errores: " + errores;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
     }
 
     private void exportarCSV() {

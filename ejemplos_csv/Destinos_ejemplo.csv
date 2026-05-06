@@ -1,0 +1,6 @@
+Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción
+1,La Antigua Guatemala,15/07/2026,350.00,CONFIRMADO,Tour colonial por la ciudad de Antigua Guatemala
+2,Lago de Atitlán,20/07/2026,450.00,CONFIRMADO,Visita al hermoso lago Atitlán y pueblos mayas
+3,Tikal Petén,25/07/2026,800.00,PENDIENTE,Exploración de las ruinas mayas de Tikal
+4,La Antigua Guatemala,18/07/2026,300.00,CONFIRMADO,Destino duplicado - genera error por mismo nombre
+5,Monterrico SantaRosa,10/06/2025,250.00,CONFIRMADO,Fecha pasada - según validación puede generar error

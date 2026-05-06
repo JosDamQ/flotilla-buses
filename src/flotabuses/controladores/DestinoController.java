@@ -128,7 +128,7 @@ public class DestinoController implements Initializable{
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
-        if (u != null && u.getRol() == flotabuses.enums.RolUsuario.OPERADOR) {
+        if (u != null && u.esOperador()) {
             btnCSV.setVisible(false);
             btnCSV.setManaged(false);
         }
@@ -394,16 +394,24 @@ public class DestinoController implements Initializable{
         File archivo = chooser.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        int importados = 0, errores = 0;
+        int importados = 0, errores = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         try (BufferedReader br = new BufferedReader(
                 new FileReader(archivo, StandardCharsets.UTF_8))) {
-            String linea = br.readLine(); // saltar encabezado
+            br.readLine(); // saltar encabezado
+            String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
                 linea = linea.trim();
                 if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 6) { errores++; continue; }
+                if (p.length < 6) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 6)\n");
+                    continue;
+                }
                 try {
                     NombreDestino nombre = null;
                     for (NombreDestino nd : NombreDestino.values()) {
@@ -411,22 +419,66 @@ public class DestinoController implements Initializable{
                             nombre = nd; break;
                         }
                     }
-                    if (nombre == null) { errores++; continue; }
-                    LocalDate fecha = LocalDate.parse(p[2].trim(), fmt);
-                    double costo    = Double.parseDouble(p[3].trim());
-                    EstadoDestino estado = EstadoDestino.valueOf(p[4].trim().toUpperCase());
-                    String desc   = p[5].trim();
+                    if (nombre == null) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino desconocido \"").append(p[1].trim()).append("\"\n");
+                        continue;
+                    }
+                    LocalDate fecha;
+                    try { fecha = LocalDate.parse(p[2].trim(), fmt); }
+                    catch (Exception e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": fecha invalida \"").append(p[2].trim())
+                            .append("\" (formato esperado: dd/MM/yyyy)\n");
+                        continue;
+                    }
+                    double costo;
+                    try {
+                        costo = Double.parseDouble(p[3].trim());
+                        if (costo <= 0) throw new NumberFormatException();
+                    } catch (NumberFormatException e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": costo invalido \"").append(p[3].trim())
+                            .append("\" (debe ser numero > 0)\n");
+                        continue;
+                    }
+                    EstadoDestino estado;
+                    try { estado = EstadoDestino.valueOf(p[4].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": estado invalido \"").append(p[4].trim())
+                            .append("\" (CONFIRMADO o PENDIENTE)\n");
+                        continue;
+                    }
+                    String desc = p[5].trim();
                     boolean ok = destinoService.crear(nombre, fecha, costo, estado, desc);
-                    if (ok) importados++; else errores++;
-                } catch (Exception e) { errores++; }
+                    if (ok) {
+                        importados++;
+                    } else {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino \"").append(nombre.getNombreMostrar())
+                            .append("\" ya existe\n");
+                    }
+                } catch (Exception e) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error inesperado - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo leer el archivo: " + e.getMessage());
             return;
         }
         cargarDatos();
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + importados + "  |  Errores/omitidos: " + errores);
+        String msg = "Importados: " + importados + "  |  Errores: " + errores;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
     }
 
     private void exportarCSV() {
