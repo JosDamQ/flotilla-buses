@@ -299,7 +299,19 @@ public class CompraBoletos implements Initializable {
 
     @FXML
     public void reporte() {
-        ReporteService.getInstance().reporteBoletos();
+        ButtonType btnPdf  = new ButtonType("PDF");
+        ButtonType btnHtml = new ButtonType("HTML");
+        ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        fmtAlert.setTitle("Reporte de Boletos");
+        fmtAlert.setHeaderText(null);
+        fmtAlert.setContentText("Seleccione el formato del reporte:");
+        fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan);
+        Optional<ButtonType> res = fmtAlert.showAndWait();
+        if (res.isPresent() && res.get() != btnCan) {
+            if (res.get() == btnPdf) ReporteService.getInstance().reporteBoletosPdf();
+            else                     ReporteService.getInstance().reporteBoletosHtml();
+        }
     }
 
     // =========================================================
@@ -437,8 +449,11 @@ public class CompraBoletos implements Initializable {
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
-            pw.println("Código_asignación,Hora_seleccionada,Código_destino,Nombre_destino,"
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
+            pw.println("Código_boleto,Hora_seleccionada,Código_destino,Nombre_destino,"
                      + "Fecha_salida_destino_asignado,Placa_bus,Tipo_bus,Código_cliente,"
                      + "Nombre_cliente,Costo_generado");
             NodoLista nodo = boletoServicio.getLista().getCabeza();

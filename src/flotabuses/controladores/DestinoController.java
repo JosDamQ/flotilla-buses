@@ -343,17 +343,33 @@ public class DestinoController implements Initializable{
     public void reporte() {
         switch(tipoOperacion) {
             case NINGUNO:
-                Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
-                dialogo.setTitle("Reporte de Destinos");
-                dialogo.setHeaderText("¿En qué orden deseas el reporte?");
+                // Paso 1: elegir formato
+                ButtonType btnPdf  = new ButtonType("PDF");
+                ButtonType btnHtml = new ButtonType("HTML");
+                ButtonType btnCan0 = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                fmtAlert.setTitle("Reporte de Destinos");
+                fmtAlert.setHeaderText(null);
+                fmtAlert.setContentText("Seleccione el formato del reporte:");
+                fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan0);
+                Optional<ButtonType> fmtRes = fmtAlert.showAndWait();
+                if (!fmtRes.isPresent() || fmtRes.get() == btnCan0) { limpiarControles(); break; }
+                boolean esPdf = fmtRes.get() == btnPdf;
+
+                // Paso 2: elegir orden
                 ButtonType btnAsc  = new ButtonType("Ascendente");
                 ButtonType btnDesc = new ButtonType("Descendente");
                 ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+                dialogo.setTitle("Reporte de Destinos");
+                dialogo.setHeaderText(null);
+                dialogo.setContentText("¿En qué orden deseas el reporte?");
                 dialogo.getButtonTypes().setAll(btnAsc, btnDesc, btnCancelar);
                 Optional<ButtonType> resp = dialogo.showAndWait();
                 if (resp.isPresent() && resp.get() != btnCancelar) {
                     boolean ascendente = resp.get() == btnAsc;
-                    ReporteService.getInstance().reporteDestinos(ascendente);
+                    if (esPdf) ReporteService.getInstance().reporteDestinosPdf(ascendente);
+                    else       ReporteService.getInstance().reporteDestinosHtml(ascendente);
                 }
                 limpiarControles();
                 break;
@@ -490,7 +506,10 @@ public class DestinoController implements Initializable{
         File archivo = chooser.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
             pw.println("Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción");
             NodoLista actual = destinoService.getLista().getCabeza();
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");

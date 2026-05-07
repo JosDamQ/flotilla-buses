@@ -348,7 +348,19 @@ public class AsignacionBusDestinoController implements Initializable{
     public void reporte(){
         switch (tipoOperacion) {
             case NINGUNO:
-                ReporteService.getInstance().reporteAsignaciones();
+                ButtonType btnPdf  = new ButtonType("PDF");
+                ButtonType btnHtml = new ButtonType("HTML");
+                ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                fmtAlert.setTitle("Reporte de Asignaciones");
+                fmtAlert.setHeaderText(null);
+                fmtAlert.setContentText("Seleccione el formato del reporte:");
+                fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan);
+                Optional<ButtonType> res = fmtAlert.showAndWait();
+                if (res.isPresent() && res.get() != btnCan) {
+                    if (res.get() == btnPdf) ReporteService.getInstance().reporteAsignacionesPdf();
+                    else                     ReporteService.getInstance().reporteAsignacionesHtml();
+                }
                 limpiarControles();
                 break;
             case ACTUALIZAR:
@@ -485,7 +497,10 @@ public class AsignacionBusDestinoController implements Initializable{
         File archivo = chooser.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
             pw.println("Código_Asig,Código_Destino,Nombre_Destino,Fecha_salida_destino," +
                        "Placa_bus,Tipo_bus,Capacidad_bus,Hora_asignación");
             NodoCabecera fila = asignacionServicio.getMatriz().getCabFilas();

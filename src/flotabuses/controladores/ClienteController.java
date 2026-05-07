@@ -274,6 +274,20 @@ public class ClienteController implements Initializable{
     public void reporte(){
         switch (tipoOperacion) {
             case NINGUNO:
+                // Paso 1: elegir formato
+                ButtonType btnPdf  = new ButtonType("PDF");
+                ButtonType btnHtml = new ButtonType("HTML");
+                ButtonType btnCan0 = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                fmtAlert.setTitle("Reporte de Clientes");
+                fmtAlert.setHeaderText(null);
+                fmtAlert.setContentText("Seleccione el formato del reporte:");
+                fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan0);
+                Optional<ButtonType> fmtRes = fmtAlert.showAndWait();
+                if (!fmtRes.isPresent() || fmtRes.get() == btnCan0) { limpiarControles(); break; }
+                boolean esPdf = fmtRes.get() == btnPdf;
+
+                // Paso 2: elegir orden
                 ButtonType btnAsc  = new ButtonType("Ascendente");
                 ButtonType btnDesc = new ButtonType("Descendente");
                 ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -283,9 +297,10 @@ public class ClienteController implements Initializable{
                 alerta.setContentText("Seleccione el orden por código:");
                 alerta.getButtonTypes().setAll(btnAsc, btnDesc, btnCan);
                 Optional<ButtonType> res = alerta.showAndWait();
-                if (res.isPresent()) {
-                    if (res.get() == btnAsc)  ReporteService.getInstance().reporteClientes(true);
-                    else if (res.get() == btnDesc) ReporteService.getInstance().reporteClientes(false);
+                if (res.isPresent() && res.get() != btnCan) {
+                    boolean asc = res.get() == btnAsc;
+                    if (esPdf) ReporteService.getInstance().reporteClientesPdf(asc);
+                    else       ReporteService.getInstance().reporteClientesHtml(asc);
                 }
                 limpiarControles();
                 break;
@@ -391,7 +406,10 @@ public class ClienteController implements Initializable{
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
             pw.println("Código,Nombre,Identificación,Contraseña,Correo");
             for (Cliente c : clienteServicio.obtenerTodosAscendente()) {
                 pw.println(c.getCodigoCliente() + "," + c.getNombreCompleto()
