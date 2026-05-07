@@ -82,6 +82,10 @@ public class MenuController implements Initializable{
         escenarioPrincipal.ventanaLogin();
     }
 
+    public void cerrarSesion(){
+        escenarioPrincipal.ventanaLogin();
+    }
+
     public void ventanaAbout(){
         escenarioPrincipal.ventanaAbout();
     }

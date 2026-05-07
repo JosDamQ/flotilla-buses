@@ -48,6 +48,25 @@
     -fx-background-color:  #d4d872 ;
 }
 
+.btnCerrarSesion {
+    -fx-background-color: #c0392b;
+    -fx-text-fill: white;
+    -fx-font-family: "Bookman Old Style";
+    -fx-font-size: 13pt;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18 8 18;
+    -fx-cursor: hand;
+}
+
+.btnCerrarSesion:hover {
+    -fx-background-color: #e74c3c;
+}
+
+.btnCerrarSesion:pressed {
+    -fx-background-color: #922b21;
+}
+
 .button1{
     -fx-background-color: transparent;
 }

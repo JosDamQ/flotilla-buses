@@ -410,6 +410,18 @@ public class BusController implements Initializable{
                 }
                 try {
                     String placa = p[0].trim();
+                    if (placa.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Placa' está vacío\n");
+                        continue;
+                    }
+                    if (p[1].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Tipo' está vacío\n");
+                        continue;
+                    }
                     TipoBus tipo;
                     try { tipo = TipoBus.valueOf(p[1].trim().toUpperCase()); }
                     catch (IllegalArgumentException e) {
@@ -417,6 +429,12 @@ public class BusController implements Initializable{
                         detalles.append("Fila ").append(fila)
                             .append(": tipo invalido \"").append(p[1].trim())
                             .append("\" (MICROBUS, COUNTY o PULLMAN)\n");
+                        continue;
+                    }
+                    if (p[2].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Capacidad' está vacío\n");
                         continue;
                     }
                     int capacidad;
@@ -427,7 +445,19 @@ public class BusController implements Initializable{
                             .append(": capacidad no es numero \"").append(p[2].trim()).append("\"\n");
                         continue;
                     }
-                    String color  = p[3].trim();
+                    String color = p[3].trim();
+                    if (color.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Color' está vacío\n");
+                        continue;
+                    }
+                    if (p[4].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Estado' está vacío\n");
+                        continue;
+                    }
                     EstadoBus estado;
                     try { estado = EstadoBus.valueOf(p[4].trim().toUpperCase()); }
                     catch (IllegalArgumentException e) {

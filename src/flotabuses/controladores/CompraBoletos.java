@@ -358,6 +358,30 @@ public class CompraBoletos implements Initializable {
                 }
                 try {
                     // Columnas: CodBoleto,Hora,CodDest,NomDest,Fecha,Placa,Tipo,CodCliente,NomCliente,Costo
+                    if (p[1].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Hora' está vacío\n");
+                        continue;
+                    }
+                    if (p[3].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Nombre_destino' está vacío\n");
+                        continue;
+                    }
+                    if (p[5].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Placa_bus' está vacío\n");
+                        continue;
+                    }
+                    if (p[7].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Código_cliente' está vacío\n");
+                        continue;
+                    }
                     String placaBus   = p[5].trim();
                     String nombreDest = p[3].trim();
                     int    codCliente;

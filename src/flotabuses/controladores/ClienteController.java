@@ -358,18 +358,37 @@ public class ClienteController implements Initializable{
                 }
                 try {
                     // Formato: Codigo,Nombre Apellido,DPI,Password,Email
-                    String[] nombre = p[1].trim().split(" ", 2);
-                    String n = nombre[0].trim();
-                    String a = nombre.length > 1 ? nombre[1].trim() : "";
-                    String dpi      = p[2].trim();
-                    String password = p[3].trim();
-                    String email    = p[4].trim();
-                    if (n.isEmpty() || dpi.isEmpty() || password.isEmpty() || email.isEmpty()) {
+                    String nombreCompleto = p[1].trim();
+                    String dpi           = p[2].trim();
+                    String password      = p[3].trim();
+                    String email         = p[4].trim();
+                    if (nombreCompleto.isEmpty()) {
                         err++;
                         detalles.append("Fila ").append(fila)
-                            .append(": campos vacios detectados\n");
+                            .append(": campo 'Nombre' está vacío\n");
                         continue;
                     }
+                    if (dpi.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'DPI' está vacío\n");
+                        continue;
+                    }
+                    if (password.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Contraseña' está vacío\n");
+                        continue;
+                    }
+                    if (email.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Correo' está vacío\n");
+                        continue;
+                    }
+                    String[] nombre = nombreCompleto.split(" ", 2);
+                    String n = nombre[0].trim();
+                    String a = nombre.length > 1 ? nombre[1].trim() : "";
                     int res = clienteServicio.crear(n, a, dpi, email, password);
                     if (res == 0) {
                         ok++;

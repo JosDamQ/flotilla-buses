@@ -422,6 +422,24 @@ public class AsignacionBusDestinoController implements Initializable{
                     continue;
                 }
                 try {
+                    if (p[2].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Nombre_Destino' está vacío\n");
+                        continue;
+                    }
+                    if (p[4].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Placa_bus' está vacío\n");
+                        continue;
+                    }
+                    if (p[7].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Hora' está vacío\n");
+                        continue;
+                    }
                     flotabuses.enums.NombreDestino nombreDestino = null;
                     for (flotabuses.enums.NombreDestino nd : flotabuses.enums.NombreDestino.values()) {
                         if (nd.getNombreMostrar().equalsIgnoreCase(p[2].trim())) {

@@ -429,6 +429,30 @@ public class DestinoController implements Initializable{
                     continue;
                 }
                 try {
+                    if (p[1].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Nombre_Destino' está vacío\n");
+                        continue;
+                    }
+                    if (p[2].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Fecha_salida' está vacío\n");
+                        continue;
+                    }
+                    if (p[3].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Costo_persona' está vacío\n");
+                        continue;
+                    }
+                    if (p[4].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Estado' está vacío\n");
+                        continue;
+                    }
                     NombreDestino nombre = null;
                     for (NombreDestino nd : NombreDestino.values()) {
                         if (nd.getNombreMostrar().equalsIgnoreCase(p[1].trim())) {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
@@ -39,5 +40,9 @@
           </Menu>
         </menus>
       </MenuBar>
+      <Button mnemonicParsing="false" onAction="#cerrarSesion"
+              styleClass="btnCerrarSesion" text="⏻  Cerrar Sesión"
+              stylesheets="@../utils/FlotaBuses.css"
+              AnchorPane.bottomAnchor="20.0" AnchorPane.rightAnchor="20.0" />
    </children>
 </AnchorPane>
