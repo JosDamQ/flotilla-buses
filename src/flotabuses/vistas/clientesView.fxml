@@ -89,15 +89,16 @@
       </ImageView>
       <TableView fx:id="tblClientes" layoutX="125.0" layoutY="125.0" onKeyReleased="#seleccionarElemento" onMouseClicked="#seleccionarElemento" prefHeight="200.0" prefWidth="682.0" stylesheets="@../utils/FlotaBuses.css">
         <columns>
-          <TableColumn fx:id="colCodigoCliente" prefWidth="83.5" text="Cod Cliente" />
-            <TableColumn fx:id="colNombre" prefWidth="102.0" text="Nombre" />
-            <TableColumn fx:id="colApellido" prefWidth="125.0" text="Apellido" />
-            <TableColumn fx:id="colDPI" prefWidth="119.0" text="DPI" />
-            <TableColumn fx:id="colEmail" prefWidth="152.0" text="Email" />
-            <TableColumn fx:id="colPassword" prefWidth="99.5" text="Password" />
+          <TableColumn fx:id="colCodigoCliente" prefWidth="70.0" text="Cod Cliente" />
+            <TableColumn fx:id="colNombre" prefWidth="95.0" text="Nombre" />
+            <TableColumn fx:id="colApellido" prefWidth="100.0" text="Apellido" />
+            <TableColumn fx:id="colDPI" prefWidth="110.0" text="DPI" />
+            <TableColumn fx:id="colEmail" prefWidth="130.0" text="Email" />
+            <TableColumn fx:id="colPassword" prefWidth="85.0" text="Password" />
+            <TableColumn fx:id="colTelefono" prefWidth="90.0" text="Teléfono" />
         </columns>
       </TableView>
-      <GridPane layoutX="190.0" layoutY="18.0" prefHeight="89.0" prefWidth="592.0">
+      <GridPane fx:id="gridDatos" layoutX="190.0" layoutY="18.0" prefHeight="89.0" prefWidth="592.0">
         <columnConstraints>
           <ColumnConstraints hgrow="SOMETIMES" maxWidth="108.0" minWidth="10.0" prefWidth="70.0" />
           <ColumnConstraints hgrow="SOMETIMES" maxWidth="160.0" minWidth="10.0" prefWidth="113.0" />
@@ -133,6 +134,12 @@
                </GridPane.margin>
             </Label>
             <TextField fx:id="txtApellido" editable="false" prefHeight="25.0" prefWidth="153.0" GridPane.columnIndex="3" />
+            <Label text="Teléfono" GridPane.columnIndex="4" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets left="10.0" />
+               </GridPane.margin>
+            </Label>
+            <TextField fx:id="txtTelefono" editable="false" prefHeight="25.0" GridPane.columnIndex="5" GridPane.rowIndex="1" />
          </children>
       </GridPane>
    </children>

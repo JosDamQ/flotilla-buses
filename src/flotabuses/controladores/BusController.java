@@ -12,6 +12,8 @@ import flotabuses.main.FlotaBuses;
 import flotabuses.modelos.Bus;
 import flotabuses.servicios.BusService;
 import flotabuses.servicios.ReporteService;
+import flotabuses.utils.IconoValidacion;
+import flotabuses.utils.ValidadorCampos;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -20,9 +22,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
@@ -31,9 +35,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.stage.FileChooser;
 
 
@@ -95,12 +104,41 @@ public class BusController implements Initializable{
     private TextField txtDescripcion;
     @FXML
     private TextField txtPlaca;
-            
+    @FXML
+    private GridPane gridDatos;
+
+    // ── Iconos de validación (Canvas) ────────────────────
+    private IconoValidacion icoPlaca;
+    private IconoValidacion icoCapacidad;
+    private IconoValidacion icoColor;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbTipo.setItems(FXCollections.observableArrayList(TipoBus.values()));
         cmbEstado.setItems(FXCollections.observableArrayList(EstadoBus.values()));
-        
+
+        // TextFormatter: placa solo letras, dígitos y guión, máx 9 caracteres
+        txtPlaca.setTextFormatter(new TextFormatter<>(change -> {
+            String t = change.getControlNewText();
+            if (t.matches("[a-zA-Z0-9\\-]{0,9}")) return change;
+            return null;
+        }));
+        // TextFormatter: capacidad solo dígitos, máx 4 cifras
+        txtCapacidad.setTextFormatter(new TextFormatter<>(change -> {
+            if (change.getControlNewText().matches("\\d{0,4}")) return change;
+            return null;
+        }));
+
+        // Inyectar iconos Canvas
+        icoPlaca    = envolver(gridDatos, txtPlaca);
+        icoCapacidad = envolver(gridDatos, txtCapacidad);
+        icoColor    = envolver(gridDatos, txtColor);
+
+        // Listeners de validación en tiempo real
+        configurarValidacion(txtPlaca,    icoPlaca,    ValidadorCampos::esPlacaValida,    ValidadorCampos.mensajePlaca());
+        configurarValidacion(txtCapacidad, icoCapacidad, ValidadorCampos::esCapacidadValida, ValidadorCampos.mensajeCapacidad());
+        configurarValidacion(txtColor,    icoColor,    ValidadorCampos::esColorValido,    ValidadorCampos.mensajeColor());
+
         cargarDatos();
     }
     
@@ -155,12 +193,22 @@ public class BusController implements Initializable{
                     txtColor.getText().trim().isEmpty() ||
                     cmbEstado.getValue() == null ||
                     txtDescripcion.getText().trim().isEmpty()) {
- 
                     mostrarAlerta(Alert.AlertType.WARNING,
                         "Campos vacíos", "Debes ingresar todos los datos.");
                     return;
-                } 
-                
+                }
+
+                // Validar formato guatemalteco
+                if (!ValidadorCampos.esPlacaValida(txtPlaca.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Placa inválida", ValidadorCampos.mensajePlaca()); return;
+                }
+                if (!ValidadorCampos.esCapacidadValida(txtCapacidad.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", ValidadorCampos.mensajeCapacidad()); return;
+                }
+                if (!ValidadorCampos.esColorValido(txtColor.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Color inválido", ValidadorCampos.mensajeColor()); return;
+                }
+
                 int capacidad;
                 try {
                     capacidad = Integer.parseInt(txtCapacidad.getText().trim());
@@ -264,7 +312,7 @@ public class BusController implements Initializable{
                     activarControles();
                     cmbTipo.setDisable(true);
                     txtPlaca.setEditable(false);
-                    //cmbEstado.setEditable(true);
+                    revalidarCampos();
                     tipoOperacion = Operaciones.ACTUALIZAR;
                 } else {
                     mostrarAlerta(Alert.AlertType.WARNING,
@@ -273,18 +321,23 @@ public class BusController implements Initializable{
                 break;
             
             case ACTUALIZAR:
-                
-                // Validar campos
                 if (txtCapacidad.getText().trim().isEmpty() ||
                     txtColor.getText().trim().isEmpty() ||
                     cmbEstado.getValue() == null ||
                     txtDescripcion.getText().trim().isEmpty()) {
- 
                     mostrarAlerta(Alert.AlertType.WARNING,
                         "Campos vacíos", "Debes ingresar todos los datos.");
                     return;
                 }
- 
+
+                // Validar formato
+                if (!ValidadorCampos.esCapacidadValida(txtCapacidad.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", ValidadorCampos.mensajeCapacidad()); return;
+                }
+                if (!ValidadorCampos.esColorValido(txtColor.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Color inválido", ValidadorCampos.mensajeColor()); return;
+                }
+
                 int capacidadEdit;
                 try {
                     capacidadEdit = Integer.parseInt(txtCapacidad.getText().trim());
@@ -573,5 +626,94 @@ public class BusController implements Initializable{
         cmbEstado.setValue(null);
         txtDescripcion.clear();
         tblBuses.getSelectionModel().clearSelection();
+        // Limpiar iconos y estilos
+        limpiarIcono(txtPlaca,    icoPlaca);
+        limpiarIcono(txtCapacidad, icoCapacidad);
+        limpiarIcono(txtColor,    icoColor);
+    }
+
+    // =========================================================
+    // HELPERS – Iconos Canvas + Validación
+    // =========================================================
+
+    private IconoValidacion envolver(GridPane grid, TextField campo) {
+        if (grid == null || campo == null) return new IconoValidacion();
+        Integer col    = GridPane.getColumnIndex(campo);
+        Integer row    = GridPane.getRowIndex(campo);
+        Integer colSpan = GridPane.getColumnSpan(campo);
+        Integer rowSpan = GridPane.getRowSpan(campo);
+        javafx.geometry.Insets margin = GridPane.getMargin(campo);
+        if (col == null) col = 0;
+        if (row == null) row = 0;
+
+        IconoValidacion ico = new IconoValidacion();
+        HBox hbox = new HBox(4, campo, ico);
+        hbox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(campo, Priority.ALWAYS);
+
+        grid.getChildren().remove(campo);
+        GridPane.setColumnIndex(hbox, col);
+        GridPane.setRowIndex(hbox, row);
+        if (colSpan != null) GridPane.setColumnSpan(hbox, colSpan);
+        if (rowSpan != null) GridPane.setRowSpan(hbox, rowSpan);
+        if (margin  != null) GridPane.setMargin(hbox, margin);
+        grid.getChildren().add(hbox);
+        return ico;
+    }
+
+    private void configurarValidacion(TextField campo, IconoValidacion ico,
+                                      Predicate<String> regla, String mensajeError) {
+        Tooltip tooltip = new Tooltip(mensajeError);
+        campo.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!campo.isEditable() || newVal == null || newVal.isEmpty()) {
+                if (ico != null) ico.limpiar();
+                campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+                Tooltip.uninstall(campo, tooltip);
+                return;
+            }
+            if (regla.test(newVal)) {
+                if (ico != null) ico.mostrarValido();
+                campo.getStyleClass().removeAll("campo-invalido");
+                if (!campo.getStyleClass().contains("campo-valido"))
+                    campo.getStyleClass().add("campo-valido");
+                Tooltip.uninstall(campo, tooltip);
+            } else {
+                if (ico != null) ico.mostrarInvalido();
+                campo.getStyleClass().removeAll("campo-valido");
+                if (!campo.getStyleClass().contains("campo-invalido"))
+                    campo.getStyleClass().add("campo-invalido");
+                Tooltip.install(campo, tooltip);
+            }
+        });
+    }
+
+    private void limpiarIcono(TextField campo, IconoValidacion ico) {
+        if (ico != null) ico.limpiar();
+        if (campo != null) campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+    }
+
+    private void revalidarCampos() {
+        revalidarCampo(txtCapacidad, icoCapacidad, ValidadorCampos::esCapacidadValida);
+        revalidarCampo(txtColor,    icoColor,    ValidadorCampos::esColorValido);
+        // Placa: no se edita al actualizar, limpiar su icono
+        limpiarIcono(txtPlaca, icoPlaca);
+    }
+
+    private void revalidarCampo(TextField campo, IconoValidacion ico,
+                                 Predicate<String> regla) {
+        String val = campo.getText();
+        if (val == null || val.isEmpty()) {
+            limpiarIcono(campo, ico);
+        } else if (regla.test(val)) {
+            if (ico != null) ico.mostrarValido();
+            campo.getStyleClass().removeAll("campo-invalido");
+            if (!campo.getStyleClass().contains("campo-valido"))
+                campo.getStyleClass().add("campo-valido");
+        } else {
+            if (ico != null) ico.mostrarInvalido();
+            campo.getStyleClass().removeAll("campo-valido");
+            if (!campo.getStyleClass().contains("campo-invalido"))
+                campo.getStyleClass().add("campo-invalido");
+        }
     }
 }

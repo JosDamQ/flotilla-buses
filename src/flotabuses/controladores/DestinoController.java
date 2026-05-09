@@ -5,18 +5,27 @@
 package flotabuses.controladores;
 
 import flotabuses.main.FlotaBuses;
+import flotabuses.utils.IconoValidacion;
+import flotabuses.utils.ValidadorCampos;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
 import javafx.fxml.Initializable;
 
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 
 import flotabuses.enums.Operaciones;
 import java.util.Optional;
@@ -98,27 +107,43 @@ public class DestinoController implements Initializable{
     private TextField txtCostoBoleto;
     @FXML
     private TextField txtDescripcion;
-    
+    @FXML
+    private GridPane gridDatos;
+
+    // ── Icono de validación (Canvas) ─────────────────────
+    private IconoValidacion icoCosto;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbNombre.setItems(FXCollections.observableArrayList(NombreDestino.values()));
         cmbEstado.setItems(FXCollections.observableArrayList(EstadoDestino.values()));
-        
-        dtpFechaSalida.setDayCellFactory(picker -> new DateCell() {
-        @Override
-        public void updateItem(LocalDate date, boolean empty) {
-            super.updateItem(date, empty);
 
-            if (date.isBefore(LocalDate.now())) {
-                setDisable(true);
-                setStyle("-fx-background-color: #ffc0cb;");
+        dtpFechaSalida.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                if (date.isBefore(LocalDate.now())) {
+                    setDisable(true);
+                    setStyle("-fx-background-color: #ffc0cb;");
+                }
             }
-        }
-    });
-        
+        });
+
+        // TextFormatter: costo solo dígitos y punto decimal
+        txtCostoBoleto.setTextFormatter(new TextFormatter<>(change -> {
+            String t = change.getControlNewText();
+            if (t.matches("\\d{0,8}(\\.\\d{0,2})?")) return change;
+            return null;
+        }));
+
+        // Inyectar icono Canvas junto al campo de costo
+        icoCosto = envolver(gridDatos, txtCostoBoleto);
+
+        // Listener de validación en tiempo real
+        configurarValidacion(txtCostoBoleto, icoCosto,
+            ValidadorCampos::esCostoValido, ValidadorCampos.mensajeCosto());
+
         cargarDatos();
-        
-        //txtCodigoDestino.setEditable(false);
     }
     
     public FlotaBuses getEscenarioPrincipal() {
@@ -603,5 +628,64 @@ public class DestinoController implements Initializable{
         cmbEstado.setValue(null);
         txtDescripcion.clear();
         tblDestinos.getSelectionModel().clearSelection();
+        // Limpiar icono y estilo
+        if (icoCosto != null) icoCosto.limpiar();
+        if (txtCostoBoleto != null)
+            txtCostoBoleto.getStyleClass().removeAll("campo-valido", "campo-invalido");
+    }
+
+    // =========================================================
+    // HELPERS – Icono Canvas + Validación
+    // =========================================================
+
+    private IconoValidacion envolver(GridPane grid, TextField campo) {
+        if (grid == null || campo == null) return new IconoValidacion();
+        Integer col    = GridPane.getColumnIndex(campo);
+        Integer row    = GridPane.getRowIndex(campo);
+        Integer colSpan = GridPane.getColumnSpan(campo);
+        Integer rowSpan = GridPane.getRowSpan(campo);
+        javafx.geometry.Insets margin = GridPane.getMargin(campo);
+        if (col == null) col = 0;
+        if (row == null) row = 0;
+
+        IconoValidacion ico = new IconoValidacion();
+        HBox hbox = new HBox(4, campo, ico);
+        hbox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(campo, Priority.ALWAYS);
+
+        grid.getChildren().remove(campo);
+        GridPane.setColumnIndex(hbox, col);
+        GridPane.setRowIndex(hbox, row);
+        if (colSpan != null) GridPane.setColumnSpan(hbox, colSpan);
+        if (rowSpan != null) GridPane.setRowSpan(hbox, rowSpan);
+        if (margin  != null) GridPane.setMargin(hbox, margin);
+        grid.getChildren().add(hbox);
+        return ico;
+    }
+
+    private void configurarValidacion(TextField campo, IconoValidacion ico,
+                                      Predicate<String> regla, String mensajeError) {
+        Tooltip tooltip = new Tooltip(mensajeError);
+        campo.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!campo.isEditable() || newVal == null || newVal.isEmpty()) {
+                if (ico != null) ico.limpiar();
+                campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+                Tooltip.uninstall(campo, tooltip);
+                return;
+            }
+            if (regla.test(newVal)) {
+                if (ico != null) ico.mostrarValido();
+                campo.getStyleClass().removeAll("campo-invalido");
+                if (!campo.getStyleClass().contains("campo-valido"))
+                    campo.getStyleClass().add("campo-valido");
+                Tooltip.uninstall(campo, tooltip);
+            } else {
+                if (ico != null) ico.mostrarInvalido();
+                campo.getStyleClass().removeAll("campo-valido");
+                if (!campo.getStyleClass().contains("campo-invalido"))
+                    campo.getStyleClass().add("campo-invalido");
+                Tooltip.install(campo, tooltip);
+            }
+        });
     }
 }

@@ -100,7 +100,7 @@
             <TableColumn fx:id="colDescripcion" prefWidth="75.0" text="Descripcion" />
         </columns>
       </TableView>
-      <GridPane layoutX="190.0" layoutY="17.0" prefHeight="90.0" prefWidth="498.0">
+      <GridPane fx:id="gridDatos" layoutX="190.0" layoutY="17.0" prefHeight="90.0" prefWidth="498.0">
         <columnConstraints>
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
