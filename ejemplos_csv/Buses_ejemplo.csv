@@ -1,0 +1,6 @@
+Placa,Tipo,Capacidad,Color,Estado,Descripcion
+ABC-001,MICROBUS,10,Azul,DISPONIBLE,Microbus para grupos pequeños
+DEF-002,COUNTY,25,Blanco,DISPONIBLE,Bus turístico estándar para tours
+GHI-003,PULLMAN,45,Verde,DISPONIBLE,Pullman para viajes largos y cómodos
+ABC-001,MICROBUS,8,Rojo,DISPONIBLE,Placa duplicada genera error
+XYZ-999,TIPO_INVALIDO,30,Negro,DISPONIBLE,Tipo de bus inválido genera error

@@ -299,7 +299,19 @@ public class CompraBoletos implements Initializable {
 
     @FXML
     public void reporte() {
-        ReporteService.getInstance().reporteBoletos();
+        ButtonType btnPdf  = new ButtonType("PDF");
+        ButtonType btnHtml = new ButtonType("HTML");
+        ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        fmtAlert.setTitle("Reporte de Boletos");
+        fmtAlert.setHeaderText(null);
+        fmtAlert.setContentText("Seleccione el formato del reporte:");
+        fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan);
+        Optional<ButtonType> res = fmtAlert.showAndWait();
+        if (res.isPresent() && res.get() != btnCan) {
+            if (res.get() == btnPdf) ReporteService.getInstance().reporteBoletosPdf();
+            else                     ReporteService.getInstance().reporteBoletosHtml();
+        }
     }
 
     // =========================================================
@@ -328,23 +340,75 @@ public class CompraBoletos implements Initializable {
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        int ok = 0, err = 0;
+        int ok = 0, err = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
             br.readLine(); // saltar encabezado
             String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 10) { err++; continue; }
+                if (p.length < 10) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 10)\n");
+                    continue;
+                }
                 try {
-                    // Columnas: CodAsig, Hora, CodDest, NomDest, Fecha, Placa, Tipo, CodCliente, NomCliente, Costo
-                    String placaBus     = p[5].trim();
-                    String nombreDest   = p[3].trim();
-                    int    codCliente   = Integer.parseInt(p[7].trim());
-                    LocalTime hora      = LocalTime.parse(p[1].trim(),
-                                            DateTimeFormatter.ofPattern("HH:mm"));
-
+                    // Columnas: CodBoleto,Hora,CodDest,NomDest,Fecha,Placa,Tipo,CodCliente,NomCliente,Costo
+                    if (p[1].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Hora' está vacío\n");
+                        continue;
+                    }
+                    if (p[3].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Nombre_destino' está vacío\n");
+                        continue;
+                    }
+                    if (p[5].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Placa_bus' está vacío\n");
+                        continue;
+                    }
+                    if (p[7].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Código_cliente' está vacío\n");
+                        continue;
+                    }
+                    String placaBus   = p[5].trim();
+                    String nombreDest = p[3].trim();
+                    int    codCliente;
+                    try { codCliente = Integer.parseInt(p[7].trim()); }
+                    catch (NumberFormatException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": codigo cliente invalido \"").append(p[7].trim()).append("\"\n");
+                        continue;
+                    }
+                    LocalTime hora;
+                    try { hora = LocalTime.parse(p[1].trim(), DateTimeFormatter.ofPattern("HH:mm")); }
+                    catch (Exception e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": hora invalida \"").append(p[1].trim())
+                            .append("\" (formato HH:mm)\n");
+                        continue;
+                    }
                     flotabuses.modelos.Bus bus =
                         flotabuses.servicios.BusService.getInstance().buscarPorPlaca(placaBus);
+                    if (bus == null) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": bus \"").append(placaBus).append("\" no encontrado\n");
+                        continue;
+                    }
                     flotabuses.modelos.Destino destino = null;
                     for (flotabuses.enums.NombreDestino nd : flotabuses.enums.NombreDestino.values()) {
                         if (nd.getNombreMostrar().equalsIgnoreCase(nombreDest)) {
@@ -353,20 +417,52 @@ public class CompraBoletos implements Initializable {
                             break;
                         }
                     }
+                    if (destino == null) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino \"").append(nombreDest).append("\" no encontrado\n");
+                        continue;
+                    }
                     Cliente cliente = clienteServicio.buscarPorCodigo(codCliente);
-                    if (bus == null || destino == null || cliente == null) { err++; continue; }
+                    if (cliente == null) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": cliente codigo ").append(codCliente).append(" no existe\n");
+                        continue;
+                    }
                     AsignacionBusDestino asig = asignacionServicio.buscar(destino, bus);
-                    if (asig == null) { err++; continue; }
-                    if (boletoServicio.crear(asig, cliente, hora) == 0) ok++;
-                    else err++;
-                } catch (Exception e) { err++; }
+                    if (asig == null) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": no existe asignacion entre destino y bus\n");
+                        continue;
+                    }
+                    int res = boletoServicio.crear(asig, cliente, hora);
+                    if (res == 0) {
+                        ok++;
+                    } else if (res == 1) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": hora ").append(hora).append(" no disponible en la asignacion\n");
+                    } else {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": bus lleno para esa hora\n");
+                    }
+                } catch (Exception e) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
             return;
         }
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + ok + " | Errores: " + err);
+        String msg = "Importados: " + ok + " | Errores: " + err;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
         cargarDatos();
     }
 
@@ -377,8 +473,11 @@ public class CompraBoletos implements Initializable {
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
-            pw.println("Código_asignación,Hora_seleccionada,Código_destino,Nombre_destino,"
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
+            pw.println("Código_boleto,Hora_seleccionada,Código_destino,Nombre_destino,"
                      + "Fecha_salida_destino_asignado,Placa_bus,Tipo_bus,Código_cliente,"
                      + "Nombre_cliente,Costo_generado");
             NodoLista nodo = boletoServicio.getLista().getCabeza();

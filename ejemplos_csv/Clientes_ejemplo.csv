@@ -1,0 +1,6 @@
+Código,Nombre,Identificación,Contraseña,Correo
+1,Juan Pérez,1234567890101,clave123,juan.perez@email.com
+2,María García,9876543210201,segura456,maria.garcia@email.com
+3,Carlos López,5555555555301,lopez789,carlos.lopez@email.com
+4,DPI_Duplicado Ejemplo,1234567890101,test123,duplicado@email.com
+5,Email Invalido Test,7777777777701,pass123,juan.perez@email.com

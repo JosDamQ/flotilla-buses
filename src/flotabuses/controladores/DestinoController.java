@@ -5,18 +5,27 @@
 package flotabuses.controladores;
 
 import flotabuses.main.FlotaBuses;
+import flotabuses.utils.IconoValidacion;
+import flotabuses.utils.ValidadorCampos;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
 import javafx.fxml.Initializable;
 
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 
 import flotabuses.enums.Operaciones;
 import java.util.Optional;
@@ -98,27 +107,43 @@ public class DestinoController implements Initializable{
     private TextField txtCostoBoleto;
     @FXML
     private TextField txtDescripcion;
-    
+    @FXML
+    private GridPane gridDatos;
+
+    // ── Icono de validación (Canvas) ─────────────────────
+    private IconoValidacion icoCosto;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbNombre.setItems(FXCollections.observableArrayList(NombreDestino.values()));
         cmbEstado.setItems(FXCollections.observableArrayList(EstadoDestino.values()));
-        
-        dtpFechaSalida.setDayCellFactory(picker -> new DateCell() {
-        @Override
-        public void updateItem(LocalDate date, boolean empty) {
-            super.updateItem(date, empty);
 
-            if (date.isBefore(LocalDate.now())) {
-                setDisable(true);
-                setStyle("-fx-background-color: #ffc0cb;");
+        dtpFechaSalida.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                if (date.isBefore(LocalDate.now())) {
+                    setDisable(true);
+                    setStyle("-fx-background-color: #ffc0cb;");
+                }
             }
-        }
-    });
-        
+        });
+
+        // TextFormatter: costo solo dígitos y punto decimal
+        txtCostoBoleto.setTextFormatter(new TextFormatter<>(change -> {
+            String t = change.getControlNewText();
+            if (t.matches("\\d{0,8}(\\.\\d{0,2})?")) return change;
+            return null;
+        }));
+
+        // Inyectar icono Canvas junto al campo de costo
+        icoCosto = envolver(gridDatos, txtCostoBoleto);
+
+        // Listener de validación en tiempo real
+        configurarValidacion(txtCostoBoleto, icoCosto,
+            ValidadorCampos::esCostoValido, ValidadorCampos.mensajeCosto());
+
         cargarDatos();
-        
-        //txtCodigoDestino.setEditable(false);
     }
     
     public FlotaBuses getEscenarioPrincipal() {
@@ -128,7 +153,7 @@ public class DestinoController implements Initializable{
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
-        if (u != null && u.getRol() == flotabuses.enums.RolUsuario.OPERADOR) {
+        if (u != null && u.esOperador()) {
             btnCSV.setVisible(false);
             btnCSV.setManaged(false);
         }
@@ -343,17 +368,33 @@ public class DestinoController implements Initializable{
     public void reporte() {
         switch(tipoOperacion) {
             case NINGUNO:
-                Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
-                dialogo.setTitle("Reporte de Destinos");
-                dialogo.setHeaderText("¿En qué orden deseas el reporte?");
+                // Paso 1: elegir formato
+                ButtonType btnPdf  = new ButtonType("PDF");
+                ButtonType btnHtml = new ButtonType("HTML");
+                ButtonType btnCan0 = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                fmtAlert.setTitle("Reporte de Destinos");
+                fmtAlert.setHeaderText(null);
+                fmtAlert.setContentText("Seleccione el formato del reporte:");
+                fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan0);
+                Optional<ButtonType> fmtRes = fmtAlert.showAndWait();
+                if (!fmtRes.isPresent() || fmtRes.get() == btnCan0) { limpiarControles(); break; }
+                boolean esPdf = fmtRes.get() == btnPdf;
+
+                // Paso 2: elegir orden
                 ButtonType btnAsc  = new ButtonType("Ascendente");
                 ButtonType btnDesc = new ButtonType("Descendente");
                 ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+                dialogo.setTitle("Reporte de Destinos");
+                dialogo.setHeaderText(null);
+                dialogo.setContentText("¿En qué orden deseas el reporte?");
                 dialogo.getButtonTypes().setAll(btnAsc, btnDesc, btnCancelar);
                 Optional<ButtonType> resp = dialogo.showAndWait();
                 if (resp.isPresent() && resp.get() != btnCancelar) {
                     boolean ascendente = resp.get() == btnAsc;
-                    ReporteService.getInstance().reporteDestinos(ascendente);
+                    if (esPdf) ReporteService.getInstance().reporteDestinosPdf(ascendente);
+                    else       ReporteService.getInstance().reporteDestinosHtml(ascendente);
                 }
                 limpiarControles();
                 break;
@@ -394,39 +435,115 @@ public class DestinoController implements Initializable{
         File archivo = chooser.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        int importados = 0, errores = 0;
+        int importados = 0, errores = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         try (BufferedReader br = new BufferedReader(
                 new FileReader(archivo, StandardCharsets.UTF_8))) {
-            String linea = br.readLine(); // saltar encabezado
+            br.readLine(); // saltar encabezado
+            String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
                 linea = linea.trim();
                 if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 6) { errores++; continue; }
+                if (p.length < 6) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 6)\n");
+                    continue;
+                }
                 try {
+                    if (p[1].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Nombre_Destino' está vacío\n");
+                        continue;
+                    }
+                    if (p[2].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Fecha_salida' está vacío\n");
+                        continue;
+                    }
+                    if (p[3].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Costo_persona' está vacío\n");
+                        continue;
+                    }
+                    if (p[4].trim().isEmpty()) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Estado' está vacío\n");
+                        continue;
+                    }
                     NombreDestino nombre = null;
                     for (NombreDestino nd : NombreDestino.values()) {
                         if (nd.getNombreMostrar().equalsIgnoreCase(p[1].trim())) {
                             nombre = nd; break;
                         }
                     }
-                    if (nombre == null) { errores++; continue; }
-                    LocalDate fecha = LocalDate.parse(p[2].trim(), fmt);
-                    double costo    = Double.parseDouble(p[3].trim());
-                    EstadoDestino estado = EstadoDestino.valueOf(p[4].trim().toUpperCase());
-                    String desc   = p[5].trim();
+                    if (nombre == null) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino desconocido \"").append(p[1].trim()).append("\"\n");
+                        continue;
+                    }
+                    LocalDate fecha;
+                    try { fecha = LocalDate.parse(p[2].trim(), fmt); }
+                    catch (Exception e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": fecha invalida \"").append(p[2].trim())
+                            .append("\" (formato esperado: dd/MM/yyyy)\n");
+                        continue;
+                    }
+                    double costo;
+                    try {
+                        costo = Double.parseDouble(p[3].trim());
+                        if (costo <= 0) throw new NumberFormatException();
+                    } catch (NumberFormatException e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": costo invalido \"").append(p[3].trim())
+                            .append("\" (debe ser numero > 0)\n");
+                        continue;
+                    }
+                    EstadoDestino estado;
+                    try { estado = EstadoDestino.valueOf(p[4].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": estado invalido \"").append(p[4].trim())
+                            .append("\" (CONFIRMADO o PENDIENTE)\n");
+                        continue;
+                    }
+                    String desc = p[5].trim();
                     boolean ok = destinoService.crear(nombre, fecha, costo, estado, desc);
-                    if (ok) importados++; else errores++;
-                } catch (Exception e) { errores++; }
+                    if (ok) {
+                        importados++;
+                    } else {
+                        errores++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": destino \"").append(nombre.getNombreMostrar())
+                            .append("\" ya existe\n");
+                    }
+                } catch (Exception e) {
+                    errores++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error inesperado - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudo leer el archivo: " + e.getMessage());
             return;
         }
         cargarDatos();
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + importados + "  |  Errores/omitidos: " + errores);
+        String msg = "Importados: " + importados + "  |  Errores: " + errores;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
     }
 
     private void exportarCSV() {
@@ -438,7 +555,10 @@ public class DestinoController implements Initializable{
         File archivo = chooser.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
 
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
             pw.println("Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción");
             NodoLista actual = destinoService.getLista().getCabeza();
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -508,5 +628,64 @@ public class DestinoController implements Initializable{
         cmbEstado.setValue(null);
         txtDescripcion.clear();
         tblDestinos.getSelectionModel().clearSelection();
+        // Limpiar icono y estilo
+        if (icoCosto != null) icoCosto.limpiar();
+        if (txtCostoBoleto != null)
+            txtCostoBoleto.getStyleClass().removeAll("campo-valido", "campo-invalido");
+    }
+
+    // =========================================================
+    // HELPERS – Icono Canvas + Validación
+    // =========================================================
+
+    private IconoValidacion envolver(GridPane grid, TextField campo) {
+        if (grid == null || campo == null) return new IconoValidacion();
+        Integer col    = GridPane.getColumnIndex(campo);
+        Integer row    = GridPane.getRowIndex(campo);
+        Integer colSpan = GridPane.getColumnSpan(campo);
+        Integer rowSpan = GridPane.getRowSpan(campo);
+        javafx.geometry.Insets margin = GridPane.getMargin(campo);
+        if (col == null) col = 0;
+        if (row == null) row = 0;
+
+        IconoValidacion ico = new IconoValidacion();
+        HBox hbox = new HBox(4, campo, ico);
+        hbox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(campo, Priority.ALWAYS);
+
+        grid.getChildren().remove(campo);
+        GridPane.setColumnIndex(hbox, col);
+        GridPane.setRowIndex(hbox, row);
+        if (colSpan != null) GridPane.setColumnSpan(hbox, colSpan);
+        if (rowSpan != null) GridPane.setRowSpan(hbox, rowSpan);
+        if (margin  != null) GridPane.setMargin(hbox, margin);
+        grid.getChildren().add(hbox);
+        return ico;
+    }
+
+    private void configurarValidacion(TextField campo, IconoValidacion ico,
+                                      Predicate<String> regla, String mensajeError) {
+        Tooltip tooltip = new Tooltip(mensajeError);
+        campo.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!campo.isEditable() || newVal == null || newVal.isEmpty()) {
+                if (ico != null) ico.limpiar();
+                campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+                Tooltip.uninstall(campo, tooltip);
+                return;
+            }
+            if (regla.test(newVal)) {
+                if (ico != null) ico.mostrarValido();
+                campo.getStyleClass().removeAll("campo-invalido");
+                if (!campo.getStyleClass().contains("campo-valido"))
+                    campo.getStyleClass().add("campo-valido");
+                Tooltip.uninstall(campo, tooltip);
+            } else {
+                if (ico != null) ico.mostrarInvalido();
+                campo.getStyleClass().removeAll("campo-valido");
+                if (!campo.getStyleClass().contains("campo-invalido"))
+                    campo.getStyleClass().add("campo-invalido");
+                Tooltip.install(campo, tooltip);
+            }
+        });
     }
 }

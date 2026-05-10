@@ -56,21 +56,22 @@ public class ClienteService {
      *   2 → email duplicado
      */
     public int crear(String nombre, String apellido, String dpi,
-                     String email, String password) {
- 
+                     String email, String password, String telefono) {
+
         // Validar DPI y email únicos recorriendo el árbol
-        if (existeDPI(dpi))    return 1;
+        if (existeDPI(dpi))     return 1;
         if (existeEmail(email)) return 2;
- 
+
         Cliente nuevo = new Cliente(
             contadorCodigo,
             nombre,
             apellido,
             dpi,
             email,
-            password
+            password,
+            telefono
         );
- 
+
         arbolClientes.insertar(contadorCodigo, nuevo);
         contadorCodigo++;
         return 0;
@@ -92,21 +93,22 @@ public class ClienteService {
      *   3 → email duplicado en otro cliente
      */
     public int actualizar(int codigoCliente, String nombre, String apellido,
-                          String dpi, String email, String password) {
- 
+                          String dpi, String email, String password, String telefono) {
+
         Cliente cliente = (Cliente) arbolClientes.buscar(codigoCliente);
         if (cliente == null) return 1;
- 
+
         // Validar DPI único (ignorando el del mismo cliente)
-        if (!cliente.getDpi().equals(dpi) && existeDPI(dpi))       return 2;
+        if (!cliente.getDpi().equals(dpi) && existeDPI(dpi))        return 2;
         // Validar email único (ignorando el del mismo cliente)
         if (!cliente.getEmail().equals(email) && existeEmail(email)) return 3;
- 
+
         cliente.setNombre(nombre);
         cliente.setApellido(apellido);
         cliente.setDpi(dpi);
         cliente.setEmail(email);
         cliente.setPassword(password);
+        cliente.setTelefono(telefono);
         return 0;
     }
  

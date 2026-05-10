@@ -12,6 +12,8 @@ import flotabuses.main.FlotaBuses;
 import flotabuses.modelos.Bus;
 import flotabuses.servicios.BusService;
 import flotabuses.servicios.ReporteService;
+import flotabuses.utils.IconoValidacion;
+import flotabuses.utils.ValidadorCampos;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -20,9 +22,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
@@ -31,9 +35,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.stage.FileChooser;
 
 
@@ -95,12 +104,41 @@ public class BusController implements Initializable{
     private TextField txtDescripcion;
     @FXML
     private TextField txtPlaca;
-            
+    @FXML
+    private GridPane gridDatos;
+
+    // ── Iconos de validación (Canvas) ────────────────────
+    private IconoValidacion icoPlaca;
+    private IconoValidacion icoCapacidad;
+    private IconoValidacion icoColor;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbTipo.setItems(FXCollections.observableArrayList(TipoBus.values()));
         cmbEstado.setItems(FXCollections.observableArrayList(EstadoBus.values()));
-        
+
+        // TextFormatter: placa solo letras, dígitos y guión, máx 9 caracteres
+        txtPlaca.setTextFormatter(new TextFormatter<>(change -> {
+            String t = change.getControlNewText();
+            if (t.matches("[a-zA-Z0-9\\-]{0,9}")) return change;
+            return null;
+        }));
+        // TextFormatter: capacidad solo dígitos, máx 4 cifras
+        txtCapacidad.setTextFormatter(new TextFormatter<>(change -> {
+            if (change.getControlNewText().matches("\\d{0,4}")) return change;
+            return null;
+        }));
+
+        // Inyectar iconos Canvas
+        icoPlaca    = envolver(gridDatos, txtPlaca);
+        icoCapacidad = envolver(gridDatos, txtCapacidad);
+        icoColor    = envolver(gridDatos, txtColor);
+
+        // Listeners de validación en tiempo real
+        configurarValidacion(txtPlaca,    icoPlaca,    ValidadorCampos::esPlacaValida,    ValidadorCampos.mensajePlaca());
+        configurarValidacion(txtCapacidad, icoCapacidad, ValidadorCampos::esCapacidadValida, ValidadorCampos.mensajeCapacidad());
+        configurarValidacion(txtColor,    icoColor,    ValidadorCampos::esColorValido,    ValidadorCampos.mensajeColor());
+
         cargarDatos();
     }
     
@@ -155,12 +193,22 @@ public class BusController implements Initializable{
                     txtColor.getText().trim().isEmpty() ||
                     cmbEstado.getValue() == null ||
                     txtDescripcion.getText().trim().isEmpty()) {
- 
                     mostrarAlerta(Alert.AlertType.WARNING,
                         "Campos vacíos", "Debes ingresar todos los datos.");
                     return;
-                } 
-                
+                }
+
+                // Validar formato guatemalteco
+                if (!ValidadorCampos.esPlacaValida(txtPlaca.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Placa inválida", ValidadorCampos.mensajePlaca()); return;
+                }
+                if (!ValidadorCampos.esCapacidadValida(txtCapacidad.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", ValidadorCampos.mensajeCapacidad()); return;
+                }
+                if (!ValidadorCampos.esColorValido(txtColor.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Color inválido", ValidadorCampos.mensajeColor()); return;
+                }
+
                 int capacidad;
                 try {
                     capacidad = Integer.parseInt(txtCapacidad.getText().trim());
@@ -264,7 +312,7 @@ public class BusController implements Initializable{
                     activarControles();
                     cmbTipo.setDisable(true);
                     txtPlaca.setEditable(false);
-                    //cmbEstado.setEditable(true);
+                    revalidarCampos();
                     tipoOperacion = Operaciones.ACTUALIZAR;
                 } else {
                     mostrarAlerta(Alert.AlertType.WARNING,
@@ -273,18 +321,23 @@ public class BusController implements Initializable{
                 break;
             
             case ACTUALIZAR:
-                
-                // Validar campos
                 if (txtCapacidad.getText().trim().isEmpty() ||
                     txtColor.getText().trim().isEmpty() ||
                     cmbEstado.getValue() == null ||
                     txtDescripcion.getText().trim().isEmpty()) {
- 
                     mostrarAlerta(Alert.AlertType.WARNING,
                         "Campos vacíos", "Debes ingresar todos los datos.");
                     return;
                 }
- 
+
+                // Validar formato
+                if (!ValidadorCampos.esCapacidadValida(txtCapacidad.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Capacidad inválida", ValidadorCampos.mensajeCapacidad()); return;
+                }
+                if (!ValidadorCampos.esColorValido(txtColor.getText().trim())) {
+                    mostrarAlerta(Alert.AlertType.WARNING, "Color inválido", ValidadorCampos.mensajeColor()); return;
+                }
+
                 int capacidadEdit;
                 try {
                     capacidadEdit = Integer.parseInt(txtCapacidad.getText().trim());
@@ -326,6 +379,20 @@ public class BusController implements Initializable{
     public void reporte() {
         switch (tipoOperacion) {
             case NINGUNO:
+                // Paso 1: elegir formato
+                ButtonType btnPdf  = new ButtonType("PDF");
+                ButtonType btnHtml = new ButtonType("HTML");
+                ButtonType btnCan0 = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                Alert fmtAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                fmtAlert.setTitle("Reporte de Buses");
+                fmtAlert.setHeaderText(null);
+                fmtAlert.setContentText("Seleccione el formato del reporte:");
+                fmtAlert.getButtonTypes().setAll(btnPdf, btnHtml, btnCan0);
+                Optional<ButtonType> fmtRes = fmtAlert.showAndWait();
+                if (!fmtRes.isPresent() || fmtRes.get() == btnCan0) { limpiarControles(); break; }
+                boolean esPdf = fmtRes.get() == btnPdf;
+
+                // Paso 2: elegir orden
                 ButtonType btnAsc  = new ButtonType("Ascendente");
                 ButtonType btnDesc = new ButtonType("Descendente");
                 ButtonType btnCan  = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -335,9 +402,10 @@ public class BusController implements Initializable{
                 alerta.setContentText("Seleccione el orden por placa:");
                 alerta.getButtonTypes().setAll(btnAsc, btnDesc, btnCan);
                 Optional<ButtonType> res = alerta.showAndWait();
-                if (res.isPresent()) {
-                    if (res.get() == btnAsc)  ReporteService.getInstance().reporteBuses(true);
-                    else if (res.get() == btnDesc) ReporteService.getInstance().reporteBuses(false);
+                if (res.isPresent() && res.get() != btnCan) {
+                    boolean asc = res.get() == btnAsc;
+                    if (esPdf) ReporteService.getInstance().reporteBusesPdf(asc);
+                    else       ReporteService.getInstance().reporteBusesHtml(asc);
                 }
                 limpiarControles();
                 break;
@@ -377,31 +445,110 @@ public class BusController implements Initializable{
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showOpenDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        int ok = 0, err = 0;
+        int ok = 0, err = 0, fila = 1;
+        StringBuilder detalles = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(archivo, StandardCharsets.UTF_8))) {
             br.readLine(); // saltar encabezado
             String linea;
             while ((linea = br.readLine()) != null) {
+                fila++;
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
                 String[] p = linea.split(",", -1);
-                if (p.length < 5) { err++; continue; }
+                if (p.length < 5) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": columnas insuficientes (se esperan 6)\n");
+                    continue;
+                }
                 try {
-                    // Formato: Placa, Tipo, Capacidad, Color, Estado
                     String placa = p[0].trim();
-                    TipoBus tipo = TipoBus.valueOf(p[1].trim().toUpperCase());
-                    int capacidad = Integer.parseInt(p[2].trim());
-                    String color  = p[3].trim();
-                    EstadoBus estado = EstadoBus.valueOf(p[4].trim().toUpperCase());
+                    if (placa.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Placa' está vacío\n");
+                        continue;
+                    }
+                    if (p[1].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Tipo' está vacío\n");
+                        continue;
+                    }
+                    TipoBus tipo;
+                    try { tipo = TipoBus.valueOf(p[1].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": tipo invalido \"").append(p[1].trim())
+                            .append("\" (MICROBUS, COUNTY o PULLMAN)\n");
+                        continue;
+                    }
+                    if (p[2].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Capacidad' está vacío\n");
+                        continue;
+                    }
+                    int capacidad;
+                    try { capacidad = Integer.parseInt(p[2].trim()); }
+                    catch (NumberFormatException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": capacidad no es numero \"").append(p[2].trim()).append("\"\n");
+                        continue;
+                    }
+                    String color = p[3].trim();
+                    if (color.isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Color' está vacío\n");
+                        continue;
+                    }
+                    if (p[4].trim().isEmpty()) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": campo 'Estado' está vacío\n");
+                        continue;
+                    }
+                    EstadoBus estado;
+                    try { estado = EstadoBus.valueOf(p[4].trim().toUpperCase()); }
+                    catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": estado invalido \"").append(p[4].trim())
+                            .append("\" (DISPONIBLE o NO_DISPONIBLE)\n");
+                        continue;
+                    }
                     String desc = p.length > 5 ? p[5].trim() : "";
-                    if (busService.crear(placa, tipo, capacidad, color, estado, desc)) ok++;
-                    else err++;
-                } catch (Exception e) { err++; }
+                    try {
+                        boolean guardado = busService.crear(placa, tipo, capacidad, color, estado, desc);
+                        if (guardado) {
+                            ok++;
+                        } else {
+                            err++;
+                            detalles.append("Fila ").append(fila)
+                                .append(": placa \"").append(placa).append("\" ya existe\n");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        err++;
+                        detalles.append("Fila ").append(fila)
+                            .append(": ").append(e.getMessage()).append("\n");
+                    }
+                } catch (Exception e) {
+                    err++;
+                    detalles.append("Fila ").append(fila)
+                        .append(": error - ").append(e.getMessage()).append("\n");
+                }
             }
         } catch (Exception e) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error", "Error leyendo archivo: " + e.getMessage());
             return;
         }
-        mostrarAlerta(Alert.AlertType.INFORMATION, "Importación completa",
-            "Importados: " + ok + " | Errores: " + err);
+        String msg = "Importados: " + ok + " | Errores: " + err;
+        if (detalles.length() > 0)
+            msg += "\n\nDetalle de errores:\n" + detalles;
+        mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
         cargarDatos();
     }
 
@@ -412,7 +559,10 @@ public class BusController implements Initializable{
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
         File archivo = fc.showSaveDialog(escenarioPrincipal.getStage());
         if (archivo == null) return;
-        try (PrintWriter pw = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(
+                    new java.io.FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+            pw.write('﻿'); // BOM UTF-8 para compatibilidad con Excel
             pw.println("Placa,Tipo,Capacidad,Color,Estado,Descripcion");
             NodoLista nodo = busService.getLista().getCabeza();
             while (nodo != null) {
@@ -476,5 +626,94 @@ public class BusController implements Initializable{
         cmbEstado.setValue(null);
         txtDescripcion.clear();
         tblBuses.getSelectionModel().clearSelection();
+        // Limpiar iconos y estilos
+        limpiarIcono(txtPlaca,    icoPlaca);
+        limpiarIcono(txtCapacidad, icoCapacidad);
+        limpiarIcono(txtColor,    icoColor);
+    }
+
+    // =========================================================
+    // HELPERS – Iconos Canvas + Validación
+    // =========================================================
+
+    private IconoValidacion envolver(GridPane grid, TextField campo) {
+        if (grid == null || campo == null) return new IconoValidacion();
+        Integer col    = GridPane.getColumnIndex(campo);
+        Integer row    = GridPane.getRowIndex(campo);
+        Integer colSpan = GridPane.getColumnSpan(campo);
+        Integer rowSpan = GridPane.getRowSpan(campo);
+        javafx.geometry.Insets margin = GridPane.getMargin(campo);
+        if (col == null) col = 0;
+        if (row == null) row = 0;
+
+        IconoValidacion ico = new IconoValidacion();
+        HBox hbox = new HBox(4, campo, ico);
+        hbox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(campo, Priority.ALWAYS);
+
+        grid.getChildren().remove(campo);
+        GridPane.setColumnIndex(hbox, col);
+        GridPane.setRowIndex(hbox, row);
+        if (colSpan != null) GridPane.setColumnSpan(hbox, colSpan);
+        if (rowSpan != null) GridPane.setRowSpan(hbox, rowSpan);
+        if (margin  != null) GridPane.setMargin(hbox, margin);
+        grid.getChildren().add(hbox);
+        return ico;
+    }
+
+    private void configurarValidacion(TextField campo, IconoValidacion ico,
+                                      Predicate<String> regla, String mensajeError) {
+        Tooltip tooltip = new Tooltip(mensajeError);
+        campo.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!campo.isEditable() || newVal == null || newVal.isEmpty()) {
+                if (ico != null) ico.limpiar();
+                campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+                Tooltip.uninstall(campo, tooltip);
+                return;
+            }
+            if (regla.test(newVal)) {
+                if (ico != null) ico.mostrarValido();
+                campo.getStyleClass().removeAll("campo-invalido");
+                if (!campo.getStyleClass().contains("campo-valido"))
+                    campo.getStyleClass().add("campo-valido");
+                Tooltip.uninstall(campo, tooltip);
+            } else {
+                if (ico != null) ico.mostrarInvalido();
+                campo.getStyleClass().removeAll("campo-valido");
+                if (!campo.getStyleClass().contains("campo-invalido"))
+                    campo.getStyleClass().add("campo-invalido");
+                Tooltip.install(campo, tooltip);
+            }
+        });
+    }
+
+    private void limpiarIcono(TextField campo, IconoValidacion ico) {
+        if (ico != null) ico.limpiar();
+        if (campo != null) campo.getStyleClass().removeAll("campo-valido", "campo-invalido");
+    }
+
+    private void revalidarCampos() {
+        revalidarCampo(txtCapacidad, icoCapacidad, ValidadorCampos::esCapacidadValida);
+        revalidarCampo(txtColor,    icoColor,    ValidadorCampos::esColorValido);
+        // Placa: no se edita al actualizar, limpiar su icono
+        limpiarIcono(txtPlaca, icoPlaca);
+    }
+
+    private void revalidarCampo(TextField campo, IconoValidacion ico,
+                                 Predicate<String> regla) {
+        String val = campo.getText();
+        if (val == null || val.isEmpty()) {
+            limpiarIcono(campo, ico);
+        } else if (regla.test(val)) {
+            if (ico != null) ico.mostrarValido();
+            campo.getStyleClass().removeAll("campo-invalido");
+            if (!campo.getStyleClass().contains("campo-valido"))
+                campo.getStyleClass().add("campo-valido");
+        } else {
+            if (ico != null) ico.mostrarInvalido();
+            campo.getStyleClass().removeAll("campo-valido");
+            if (!campo.getStyleClass().contains("campo-invalido"))
+                campo.getStyleClass().add("campo-invalido");
+        }
     }
 }

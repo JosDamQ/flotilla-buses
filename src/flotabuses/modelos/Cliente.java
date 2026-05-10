@@ -16,21 +16,23 @@ public class Cliente {
     private int    codigoCliente;  // Identificador único numérico
     private String nombre;
     private String apellido;
-    private String dpi;            // Identificación única
+    private String dpi;            // Identificación única (CUI Guatemala, 13 dígitos)
     private String email;
     private String password;
- 
+    private String telefono;       // Teléfono Guatemala (8 dígitos, inicia 2-7)
+
     /*
-     * Constructor completo.
+     * Constructor completo (con teléfono).
      */
     public Cliente(int codigoCliente, String nombre, String apellido,
-                   String dpi, String email, String password) {
+                   String dpi, String email, String password, String telefono) {
         this.codigoCliente = codigoCliente;
         this.nombre        = nombre;
         this.apellido      = apellido;
         this.dpi           = dpi;
         this.email         = email;
         this.password      = password;
+        this.telefono      = telefono;
     }
  
     // =========================================================
@@ -56,7 +58,10 @@ public class Cliente {
  
     public String getPassword()              { return password; }
     public void setPassword(String p)        { this.password = p; }
- 
+
+    public String getTelefono()              { return telefono; }
+    public void setTelefono(String t)        { this.telefono = t; }
+
     @Override
     public String toString() {
         return "Cliente{" +
@@ -64,6 +69,7 @@ public class Cliente {
                ", nombre='" + getNombreCompleto() + '\'' +
                ", dpi='" + dpi + '\'' +
                ", email='" + email + '\'' +
+               ", tel='" + telefono + '\'' +
                '}';
     }
 }

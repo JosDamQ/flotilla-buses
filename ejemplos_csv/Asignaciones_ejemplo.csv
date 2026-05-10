@@ -1,0 +1,6 @@
+Codigo_Asig,Codigo_Destino,Nombre_Destino,Fecha_salida_destino,Placa_bus,Tipo_bus,Capacidad_bus,Hora
+1,1,La Antigua Guatemala,15/07/2026,ABC-001,MICROBUS,10,08:00
+2,1,La Antigua Guatemala,15/07/2026,DEF-002,COUNTY,25,10:00
+3,2,Lago de Atitlán,20/07/2026,GHI-003,PULLMAN,45,07:00
+4,1,La Antigua Guatemala,15/07/2026,ABC-001,MICROBUS,10,08:30
+5,99,Destino Inexistente,01/01/2026,ABC-001,MICROBUS,10,09:00
