@@ -1,30 +1,66 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- * Descripción: Representa un destino turístico programado por la agencia.
- *              Se almacena en una Lista Doblemente Enlazada ordenada
- *              por nombre del destino.
- */
 package flotabuses.modelos;
+
 import flotabuses.enums.EstadoDestino;
 import flotabuses.enums.NombreDestino;
-
 import java.time.LocalDate;
 
 /**
+ * Entidad que representa un destino turistico programado por la agencia.
+ *
+ * <p>Los destinos se almacenan en una {@code ListaDoblementeEnlazada} ordenada
+ * alfabeticamente por el nombre del destino (valor {@link NombreDestino#getNombreMostrar()}).
+ * Esto garantiza listados siempre ordenados sin clasificacion adicional.</p>
+ *
+ * <p>Solo los destinos con estado {@code CONFIRMADO} pueden recibir asignaciones
+ * de buses en el modulo de asignaciones (modulo 4). Un destino en estado
+ * {@code PENDIENTE} es visible en la lista pero no puede ser seleccionado para
+ * asignar buses ni para vender boletos.</p>
+ *
+ * <p>El costo del boleto se almacena aqui y se referencia desde cada
+ * {@code Boleto} a traves de la cadena de navegacion:
+ * {@code boleto -> asignacion -> destino -> costoBoleto}.</p>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see flotabuses.servicios.DestinoService
+ * @see flotabuses.estructuras.ListaDoblementeEnlazada
+ * @see flotabuses.modelos.AsignacionBusDestino
  */
 public class Destino {
-    private int           codigoDestino;  // Identificador único numérico
-    private NombreDestino nombre;         // Seleccionado de lista preestablecida
-    private LocalDate     fechaSalida;    // Formato dd/mm/aaaa
-    private double        costoBoleto;    // En quetzales
-    private EstadoDestino estado;         // CONFIRMADO o PENDIENTE
+
+    /** Identificador numerico unico generado automaticamente por {@code DestinoService}. */
+    private int           codigoDestino;
+
+    /**
+     * Nombre del destino seleccionado de la lista preestablecida {@link NombreDestino}.
+     * Se usa {@code getNombreMostrar()} como clave en la lista doblemente enlazada.
+     */
+    private NombreDestino nombre;
+
+    /** Fecha de salida programada para este destino. Formato de visualizacion: dd/MM/yyyy. */
+    private LocalDate     fechaSalida;
+
+    /** Costo del boleto en quetzales (GTQ). */
+    private double        costoBoleto;
+
+    /**
+     * Estado operativo del destino.
+     * Solo los destinos {@code CONFIRMADO} pueden recibir asignaciones y venta de boletos.
+     */
+    private EstadoDestino estado;
+
+    /** Descripcion libre del destino (atractivos, condiciones, observaciones). */
     private String        descripcion;
- 
-    /*
-     * Constructor completo.
+
+    /**
+     * Construye un destino con todos sus atributos.
+     *
+     * @param codigoDestino identificador unico asignado por el servicio
+     * @param nombre        nombre del destino de la lista preestablecida
+     * @param fechaSalida   fecha programada de salida
+     * @param costoBoleto   costo del boleto en quetzales
+     * @param estado        estado operativo ({@code CONFIRMADO} o {@code PENDIENTE})
+     * @param descripcion   descripcion libre del destino
      */
     public Destino(int codigoDestino, NombreDestino nombre, LocalDate fechaSalida,
                    double costoBoleto, EstadoDestino estado, String descripcion) {
@@ -35,46 +71,63 @@ public class Destino {
         this.estado        = estado;
         this.descripcion   = descripcion;
     }
- 
+
     // =========================================================
     // GETTERS Y SETTERS
     // =========================================================
- 
+
+    /** @return codigo unico del destino */
     public int getCodigoDestino()              { return codigoDestino; }
+
+    /** @param c nuevo codigo de destino */
     public void setCodigoDestino(int c)        { this.codigoDestino = c; }
- 
+
+    /** @return nombre del destino como valor del enum {@link NombreDestino} */
     public NombreDestino getNombre()           { return nombre; }
+
+    /** @param n nuevo nombre del destino */
     public void setNombre(NombreDestino n)     { this.nombre = n; }
- 
+
+    /** @return fecha de salida programada */
     public LocalDate getFechaSalida()          { return fechaSalida; }
+
+    /** @param f nueva fecha de salida */
     public void setFechaSalida(LocalDate f)    { this.fechaSalida = f; }
- 
+
+    /** @return costo del boleto en quetzales */
     public double getCostoBoleto()             { return costoBoleto; }
+
+    /** @param c nuevo costo del boleto */
     public void setCostoBoleto(double c)       { this.costoBoleto = c; }
- 
+
+    /** @return estado operativo del destino */
     public EstadoDestino getEstado()           { return estado; }
+
+    /** @param e nuevo estado operativo */
     public void setEstado(EstadoDestino e)     { this.estado = e; }
- 
+
+    /** @return descripcion libre del destino */
     public String getDescripcion()             { return descripcion; }
+
+    /** @param d nueva descripcion */
     public void setDescripcion(String d)       { this.descripcion = d; }
- 
-    /*
-     * Indica si el destino está confirmado para poder asignarle buses.
-     * Solo los destinos CONFIRMADOS pueden recibir asignaciones (módulo 4).
+
+    /**
+     * Indica si el destino puede recibir asignaciones de buses y venta de boletos.
+     *
+     * @return {@code true} si el estado es {@code CONFIRMADO}; {@code false} si es {@code PENDIENTE}
      */
     public boolean estaConfirmado() {
         return estado == EstadoDestino.CONFIRMADO;
     }
- 
+
+    /**
+     * Representacion textual compacta del destino para uso en ComboBox y tablas.
+     *
+     * @return cadena con formato "nombreMostrar | fechaSalida | costoBoleto"
+     */
     @Override
     public String toString() {
-//        return "Destino{" +
-//               "codigo=" + codigoDestino +
-//               ", nombre='" + nombre + '\'' +
-//               ", fechaSalida=" + fechaSalida +
-//               ", costo=" + costoBoleto +
-//               ", estado=" + estado +
-//               '}';
         return nombre.getNombreMostrar() + " | " + fechaSalida + " | " + costoBoleto;
     }
 }

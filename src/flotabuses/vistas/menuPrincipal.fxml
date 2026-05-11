@@ -23,8 +23,7 @@
                   <MenuItem fx:id="mnuItemDestinos" mnemonicParsing="false" onAction="#ventanaDestino" text="Destinos" />
                   <MenuItem fx:id="mnuItemAsignaciones" mnemonicParsing="false" onAction="#ventanaAsignacionBusDestinoController" text="Asignar bus a Destino" />
                   <MenuItem mnemonicParsing="false" onAction="#ventanaCompraBoletos" text="Compra de Boletos" />
-                  <!--ESTA EN VEREMOS YA QUE NO LO PIDE EL DOC-->
-                  <!--<MenuItem mnemonicParsing="false" text="Usuarios" />-->
+                  <MenuItem mnemonicParsing="false" onAction="#ventanaVisualizador" text="Visualizador de Estructuras" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Opciones">

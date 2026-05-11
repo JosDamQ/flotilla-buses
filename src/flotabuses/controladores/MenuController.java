@@ -89,4 +89,8 @@ public class MenuController implements Initializable{
     public void ventanaAbout(){
         escenarioPrincipal.ventanaAbout();
     }
+
+    public void ventanaVisualizador(){
+        escenarioPrincipal.ventanaVisualizador();
+    }
 }

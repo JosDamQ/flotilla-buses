@@ -1,0 +1,737 @@
+================================================================================
+          MANUAL DE USUARIO — SISTEMA FLOTILLA DE BUSES
+          Agencia Turistica de Guatemala
+          Version 2.0
+================================================================================
+
+
+TABLA DE CONTENIDOS
+-------------------
+  1. Introduccion al Sistema
+  2. Inicio de Sesion y Roles de Usuario
+  3. Modulo 1 — Gestion de Clientes
+  4. Modulo 2 — Gestion de Buses
+  5. Modulo 3 — Gestion de Destinos
+  6. Modulo 4 — Asignacion de Buses a Destinos
+  7. Modulo 5 — Compra de Boletos
+  8. Visualizador de Estructuras de Datos
+  9. Reportes (PDF y HTML)
+ 10. Importacion y Exportacion CSV
+ 11. Referencia de Validaciones
+ 12. Control de Acceso por Rol
+ 13. Preguntas Frecuentes
+
+
+================================================================================
+1. INTRODUCCION AL SISTEMA
+================================================================================
+
+El Sistema Flotilla de Buses es una aplicacion de escritorio desarrollada en
+Java con JavaFX que permite a la agencia turistica administrar su flotilla de
+buses, los destinos turisticos programados, la asignacion de buses a destinos
+y la venta de boletos a clientes.
+
+El sistema esta compuesto por los siguientes modulos principales:
+
+  - Gestion de Clientes          (registro, edicion y eliminacion de viajeros)
+  - Gestion de Buses             (registro y mantenimiento de la flotilla)
+  - Gestion de Destinos          (programacion de destinos turisticos)
+  - Asignacion Bus-Destino       (vinculacion de buses con destinos y horarios)
+  - Compra de Boletos            (venta de boletos a clientes registrados)
+  - Visualizador de Estructuras  (diagrama grafico de las estructuras de datos)
+
+Tecnologia interna:
+  - Clientes    -> Arbol Binario de Busqueda (ABB), ordenado por codigo de cliente
+  - Buses       -> Lista Doblemente Enlazada, ordenada alfabeticamente por placa
+  - Destinos    -> Lista Doblemente Enlazada, ordenada por nombre del destino
+  - Asignaciones-> Matriz Ortogonal dispersa (filas=destinos, columnas=buses)
+  - Boletos     -> Lista Doblemente Enlazada por hora de salida (por cliente)
+
+
+================================================================================
+2. INICIO DE SESION Y ROLES DE USUARIO
+================================================================================
+
+Al iniciar el sistema se muestra la pantalla de inicio de sesion.
+
+CAMPOS:
+  - Usuario   : nombre de usuario del sistema
+  - Contrasena: contrasena asociada
+
+USUARIOS PREDEFINIDOS:
+  +-------------+-----------+-------------+
+  | Username    | Password  | Rol         |
+  +-------------+-----------+-------------+
+  | admin       | admin123  | ADMIN       |
+  | operador    | op123     | OPERADOR    |
+  +-------------+-----------+-------------+
+
+ROLES Y PERMISOS:
+
+  ADMIN (Administrador)
+    Acceso completo a todos los modulos:
+    - Clientes, Buses, Destinos, Asignaciones, Boletos, Visualizador
+
+  OPERADOR
+    Acceso restringido:
+    - Solo puede gestionar Clientes y realizar Compra de Boletos.
+    - Los modulos Buses, Destinos y Asignaciones no aparecen en el menu.
+
+Si las credenciales son incorrectas, el sistema muestra un mensaje de error
+y no permite el acceso. No hay limite de intentos configurado.
+
+CERRAR SESION:
+  Menu superior -> Opciones -> Cerrar Sesion
+  Esto regresa a la pantalla de inicio de sesion.
+
+
+================================================================================
+3. MODULO 1 — GESTION DE CLIENTES
+================================================================================
+
+Acceso: Menu -> Modulos -> Clientes
+
+DESCRIPCION:
+  Permite registrar, editar, eliminar y consultar los clientes de la agencia.
+  Los clientes se almacenan en un Arbol Binario de Busqueda ordenado por
+  su codigo de cliente (generado automaticamente de forma incremental).
+
+--------------------------------------------------------------------------------
+3.1 PANTALLA PRINCIPAL DE CLIENTES
+--------------------------------------------------------------------------------
+
+La pantalla muestra:
+  - Tabla con todos los clientes registrados (columnas: Codigo, Nombre, Apellido,
+    DPI, Email, Telefono)
+  - Formulario de entrada a la derecha para agregar o editar
+  - Botones de accion: Guardar, Limpiar, Editar, Eliminar
+
+--------------------------------------------------------------------------------
+3.2 REGISTRAR UN NUEVO CLIENTE
+--------------------------------------------------------------------------------
+
+1. Asegurese de que los campos del formulario esten vacios. Si no, haga clic
+   en el boton "Limpiar".
+2. Complete todos los campos obligatorios:
+   - Nombre       : solo letras, tildes y espacios. Ej: "Juan"
+   - Apellido     : solo letras, tildes y espacios. Ej: "Perez Garcia"
+   - DPI          : exactamente 13 digitos numericos. Ej: "1234567890123"
+   - Email        : formato estandar. Ej: "juan.perez@gmail.com"
+   - Contrasena   : minimo 6 caracteres
+   - Telefono     : 8 digitos; el primer digito debe ser 2, 3, 4, 5, 6 o 7
+                    Ej: "52341234"
+
+3. Conforme escribe en cada campo, un icono de validacion aparece a la derecha:
+   - Icono verde (marca de verificacion): el campo es valido.
+   - Icono rojo  (X):                     el campo contiene un error de formato.
+
+4. Haga clic en "Guardar".
+
+MENSAJES DE ERROR POSIBLES:
+  - "DPI ya registrado": otro cliente usa ese numero de DPI.
+  - "Email ya registrado": otro cliente usa ese correo electronico.
+  - "Campos invalidos": uno o mas campos no superaron la validacion de formato.
+
+El codigo de cliente se asigna automaticamente; no puede modificarse.
+
+--------------------------------------------------------------------------------
+3.3 EDITAR UN CLIENTE EXISTENTE
+--------------------------------------------------------------------------------
+
+1. Seleccione al cliente en la tabla.
+2. Haga clic en "Editar". Los datos se cargan en el formulario.
+3. Modifique los campos deseados respetando las mismas reglas de validacion.
+4. Haga clic en "Guardar".
+
+NOTA: El DPI y el Email deben ser unicos. Si ingresa un valor ya usado por otro
+cliente diferente, el sistema rechaza la operacion.
+
+--------------------------------------------------------------------------------
+3.4 ELIMINAR UN CLIENTE
+--------------------------------------------------------------------------------
+
+1. Seleccione al cliente en la tabla.
+2. Haga clic en "Eliminar".
+3. Confirme la accion en el dialogo de confirmacion.
+
+ADVERTENCIA: Un cliente con boletos activos puede ser eliminado del sistema;
+sin embargo, los boletos que ya registro no se eliminan automaticamente.
+Se recomienda verificar que el cliente no tenga boletos pendientes antes de
+eliminarlo.
+
+--------------------------------------------------------------------------------
+3.5 BUSCAR CLIENTES
+--------------------------------------------------------------------------------
+
+La tabla de clientes muestra en todo momento la lista completa ordenada por
+codigo. Para localizar un cliente rapidamente:
+  - Use la barra de busqueda si esta disponible en la pantalla.
+  - Haga clic en el encabezado de la columna para reordenar la vista.
+
+--------------------------------------------------------------------------------
+3.6 IMPORTAR CLIENTES DESDE CSV
+--------------------------------------------------------------------------------
+
+El boton "Importar CSV" permite cargar multiples clientes desde un archivo
+de texto con formato CSV.
+
+FORMATO DEL ARCHIVO:
+  Cada linea debe contener los campos separados por coma en este orden:
+  nombre,apellido,dpi,email,password,telefono
+
+  Ejemplo:
+  Maria,Lopez,1234567890100,maria@gmail.com,pass123,55551234
+  Carlos,Gomez,9876543210987,carlos@hotmail.com,secreta,32219876
+
+REGLAS DE IMPORTACION:
+  - La primera linea puede ser un encabezado; el sistema lo detecta
+    automaticamente si el primer campo no es un nombre valido.
+  - Los registros con datos invalidos o DPI/email duplicados se omiten.
+  - Al finalizar se muestra un resumen: cuantos registros se importaron
+    y cuantos se rechazaron.
+
+--------------------------------------------------------------------------------
+3.7 EXPORTAR CLIENTES A CSV
+--------------------------------------------------------------------------------
+
+El boton "Exportar CSV" guarda todos los clientes actuales en un archivo CSV
+en la ubicacion que el usuario seleccione.
+
+El archivo generado tiene la codificacion UTF-8 (sin BOM) y usa coma como
+separador. Puede abrirse en Excel o en cualquier editor de texto.
+
+--------------------------------------------------------------------------------
+3.8 REPORTE DE CLIENTES
+--------------------------------------------------------------------------------
+
+El boton "Reporte" genera un informe con todos los clientes registrados.
+Se ofrecen dos formatos:
+  - PDF  : abre el informe en el visor de PDF predeterminado del sistema.
+  - HTML : abre el informe en el navegador web predeterminado del sistema.
+
+El reporte incluye: codigo, nombre completo, DPI, email y telefono de cada
+cliente, ordenados por codigo ascendente.
+
+
+================================================================================
+4. MODULO 2 — GESTION DE BUSES
+================================================================================
+
+Acceso: Menu -> Modulos -> Buses
+Requiere rol: ADMIN
+
+DESCRIPCION:
+  Permite registrar, editar, eliminar y consultar los buses de la flotilla.
+  Los buses se almacenan en una Lista Doblemente Enlazada ordenada
+  alfabeticamente por placa, lo que garantiza listados siempre ordenados.
+
+--------------------------------------------------------------------------------
+4.1 REGISTRAR UN NUEVO BUS
+--------------------------------------------------------------------------------
+
+Campos obligatorios:
+  - Placa      : formato guatemalteco X-000-XXX (una letra, guion, tres digitos,
+                 guion, tres letras). Ej: "P-123-ABC". No distingue mayusculas/
+                 minusculas; se guarda siempre en mayusculas.
+  - Tipo       : seleccione del ComboBox:
+                   MICROBUS  (capacidad 10-25 pasajeros)
+                   COUNTY    (capacidad 26-45 pasajeros)
+                   PULLMAN   (capacidad 46-80 pasajeros)
+  - Capacidad  : numero entero dentro del rango permitido para el tipo seleccionado.
+  - Color      : solo letras y espacios. Ej: "Azul marino"
+  - Estado     : DISPONIBLE o NO_DISPONIBLE
+  - Descripcion: texto libre (modelo, marca, observaciones)
+
+Al cambiar el tipo de bus en el ComboBox, el campo de capacidad muestra
+automaticamente el rango permitido como referencia.
+
+MENSAJES DE ERROR POSIBLES:
+  - "Placa ya registrada": ya existe un bus con esa placa.
+  - "Capacidad fuera de rango": el valor no corresponde al tipo seleccionado.
+
+--------------------------------------------------------------------------------
+4.2 EDITAR UN BUS
+--------------------------------------------------------------------------------
+
+Se puede modificar: capacidad, color, estado y descripcion.
+La placa y el tipo NO pueden modificarse una vez registrados, ya que la placa
+es la clave de identificacion del bus en el sistema.
+
+Si necesita cambiar el tipo de un bus, debe eliminarlo y crearlo nuevamente.
+
+--------------------------------------------------------------------------------
+4.3 ELIMINAR UN BUS
+--------------------------------------------------------------------------------
+
+Un bus puede eliminarse si no tiene asignaciones activas en la Matriz Ortogonal.
+Si tiene asignaciones, primero debe eliminar las asignaciones correspondientes
+en el modulo 4 antes de poder eliminar el bus.
+
+--------------------------------------------------------------------------------
+4.4 IMPORTAR / EXPORTAR / REPORTES
+--------------------------------------------------------------------------------
+
+Funcionan de la misma manera que en el modulo de Clientes (ver seccion 3.6-3.8).
+
+Formato CSV para buses:
+  placa,tipo,capacidad,color,estado,descripcion
+
+  Tipos validos: MICROBUS, COUNTY, PULLMAN
+  Estados validos: DISPONIBLE, NO_DISPONIBLE
+
+
+================================================================================
+5. MODULO 3 — GESTION DE DESTINOS
+================================================================================
+
+Acceso: Menu -> Modulos -> Destinos
+Requiere rol: ADMIN
+
+DESCRIPCION:
+  Permite programar y administrar los destinos turisticos de la agencia.
+  Los destinos se almacenan en una Lista Doblemente Enlazada ordenada
+  por nombre del destino.
+
+--------------------------------------------------------------------------------
+5.1 REGISTRAR UN NUEVO DESTINO
+--------------------------------------------------------------------------------
+
+Campos obligatorios:
+  - Nombre del Destino: seleccione del ComboBox de destinos preestablecidos.
+    (La lista esta definida por el sistema y no puede modificarse por el usuario.)
+  - Fecha de Salida   : seleccione con el selector de fecha. La fecha debe ser
+                        futura al dia de hoy.
+  - Costo del Boleto  : valor numerico positivo en quetzales (GTQ). Permite
+                        decimales. Ej: 350.50
+  - Estado            : CONFIRMADO o PENDIENTE
+  - Descripcion       : texto libre sobre el destino
+
+IMPORTANCIA DEL ESTADO:
+  - CONFIRMADO: el destino puede recibir buses en el modulo de asignaciones
+                y los boletos pueden venderse a traves del modulo 5.
+  - PENDIENTE : el destino es visible en la lista pero NO puede recibir
+                asignaciones ni venta de boletos hasta que sea confirmado.
+
+--------------------------------------------------------------------------------
+5.2 CAMBIAR EL ESTADO DE UN DESTINO
+--------------------------------------------------------------------------------
+
+Seleccione el destino en la tabla -> clic en "Editar" -> cambie el campo Estado
+-> clic en "Guardar".
+
+--------------------------------------------------------------------------------
+5.3 ELIMINAR UN DESTINO
+--------------------------------------------------------------------------------
+
+Un destino puede eliminarse solo si no tiene buses asignados en la Matriz
+Ortogonal. Si tiene asignaciones activas, primero elimine las asignaciones
+desde el modulo 4.
+
+
+================================================================================
+6. MODULO 4 — ASIGNACION DE BUSES A DESTINOS
+================================================================================
+
+Acceso: Menu -> Modulos -> Asignar bus a Destino
+Requiere rol: ADMIN
+
+DESCRIPCION:
+  Permite vincular buses disponibles con destinos confirmados y definir los
+  horarios de salida disponibles para cada asignacion.
+
+  Las asignaciones se almacenan en una Matriz Ortogonal dispersa:
+    - Filas    = Destinos turisticos (clave: nombre del destino)
+    - Columnas = Buses de la flotilla (clave: placa del bus)
+    - Celda    = Asignacion activa con su lista de horas de salida
+
+  Esta estructura es eficiente porque solo almacena las celdas con datos
+  (las asignaciones existentes), no todas las combinaciones posibles.
+
+--------------------------------------------------------------------------------
+6.1 CREAR UNA NUEVA ASIGNACION
+--------------------------------------------------------------------------------
+
+1. Seleccione un Destino del ComboBox (solo aparecen destinos CONFIRMADOS).
+2. Seleccione un Bus del ComboBox (solo aparecen buses DISPONIBLES).
+3. Ingrese una Hora de Salida en formato HH:mm. Ej: "07:30"
+4. Haga clic en "Guardar".
+
+VALIDACIONES DE HORA:
+  - La hora no puede ser anterior a las 04:00 AM.
+  - Dentro de una misma asignacion (mismo bus y mismo destino), debe existir al
+    menos 1 hora de diferencia entre cada hora registrada.
+  - Si el mismo bus ya tiene una asignacion en otro destino el mismo dia, la
+    hora nueva tampoco puede estar a menos de 1 hora de las horas de ese otro
+    destino. Esto evita que un bus este en dos lugares al mismo tiempo.
+
+Si la combinacion destino+bus ya existe, la nueva hora se agrega a las horas
+existentes de esa asignacion (no se crea una asignacion nueva).
+
+--------------------------------------------------------------------------------
+6.2 AGREGAR MAS HORAS A UNA ASIGNACION EXISTENTE
+--------------------------------------------------------------------------------
+
+1. Seleccione el mismo Destino y el mismo Bus que ya tienen asignacion.
+2. Ingrese la nueva hora de salida.
+3. Haga clic en "Guardar".
+
+El sistema detecta que ya existe la asignacion y agrega la hora a la lista
+interna de esa celda de la matriz.
+
+--------------------------------------------------------------------------------
+6.3 ELIMINAR UNA HORA O UNA ASIGNACION COMPLETA
+--------------------------------------------------------------------------------
+
+- Para eliminar una hora especifica:
+  Seleccione la fila en la tabla -> clic en "Eliminar hora".
+  Si la asignacion queda sin horas, la celda completa se elimina de la matriz.
+
+- Para eliminar toda la asignacion (todas las horas de un bus en un destino):
+  Seleccione cualquier fila de esa asignacion -> clic en "Eliminar asignacion".
+
+--------------------------------------------------------------------------------
+6.4 CAMBIAR EL BUS DE UNA ASIGNACION
+--------------------------------------------------------------------------------
+
+Si un bus asignado queda fuera de servicio y debe reemplazarse:
+1. Seleccione la asignacion en la tabla.
+2. Use la funcion "Cambiar bus" (si disponible en la interfaz).
+3. Seleccione el nuevo bus.
+
+Al cambiar el bus, todos los boletos ya vendidos para esa asignacion
+se actualizan automaticamente para referenciar el nuevo bus, sin
+necesidad de reemitirlos.
+
+
+================================================================================
+7. MODULO 5 — COMPRA DE BOLETOS
+================================================================================
+
+Acceso: Menu -> Modulos -> Compra de Boletos
+Requiere rol: ADMIN u OPERADOR
+
+DESCRIPCION:
+  Permite emitir boletos de viaje a clientes registrados para destinos
+  con buses asignados y horas disponibles.
+
+  Los boletos se almacenan en una Lista Doblemente Enlazada ordenada por
+  hora de salida, asociada a cada cliente.
+
+--------------------------------------------------------------------------------
+7.1 EMITIR UN NUEVO BOLETO
+--------------------------------------------------------------------------------
+
+1. Seleccione el Cliente del ComboBox (busqueda por nombre o codigo).
+2. Seleccione el Destino (solo aparecen destinos CONFIRMADOS con asignaciones).
+3. Seleccione el Bus asignado al destino elegido.
+4. Seleccione la Hora de Salida de entre las horas disponibles de esa asignacion.
+5. Revise el costo que se muestra automaticamente (costo del destino).
+6. Haga clic en "Emitir Boleto".
+
+El sistema valida que la hora seleccionada exista en la asignacion. Si la hora
+fue eliminada entre que se cargaron las opciones y se hizo clic en guardar,
+el sistema muestra un error.
+
+--------------------------------------------------------------------------------
+7.2 VER BOLETOS DE UN CLIENTE
+--------------------------------------------------------------------------------
+
+Seleccione el cliente en el ComboBox o la tabla. Los boletos del cliente
+aparecen listados con: destino, bus, hora y costo.
+
+--------------------------------------------------------------------------------
+7.3 CANCELAR UN BOLETO
+--------------------------------------------------------------------------------
+
+Seleccione el boleto en la tabla -> clic en "Cancelar boleto".
+El boleto se elimina de la lista del cliente. El bus y el horario quedan
+disponibles para otros compradores.
+
+
+================================================================================
+8. VISUALIZADOR DE ESTRUCTURAS DE DATOS
+================================================================================
+
+Acceso: Menu -> Modulos -> Visualizador de Estructuras
+
+DESCRIPCION:
+  Muestra una representacion grafica interactiva de las tres estructuras de datos
+  internas del sistema, con los datos reales almacenados en tiempo de ejecucion.
+
+  Util para comprender como funciona cada estructura y verificar el estado
+  actual de los datos.
+
+PESTANAS DISPONIBLES:
+
+  --- ARBOL BINARIO DE BUSQUEDA — CLIENTES ---
+    Dibuja el arbol de clientes completo.
+    - Cada nodo circular representa un cliente: muestra su codigo (C-NNN)
+      y su nombre.
+    - Las lineas conectan el nodo padre con sus hijos izquierdo y derecho.
+    - El hijo izquierdo siempre tiene codigo menor; el derecho, mayor.
+    - El canvas tiene scroll horizontal y vertical para arboles grandes.
+
+  --- LISTA DOBLEMENTE ENLAZADA — BUSES ---
+    Dibuja la lista de buses de izquierda a derecha.
+    - Cada rectangulo representa un bus: muestra placa, tipo, capacidad,
+      estado y color.
+    - Las flechas superiores (izq -> der) representan el puntero "siguiente".
+    - Las flechas inferiores (der -> izq) representan el puntero "anterior".
+    - Los centinelas "null" en ambos extremos representan el inicio y fin de lista.
+    - El canvas tiene scroll horizontal para listas largas.
+
+  --- MATRIZ ORTOGONAL — ASIGNACIONES ---
+    Dibuja la cuadricula de asignaciones.
+    - Cabeceras de columna (azul): buses de la flotilla (placa).
+    - Cabeceras de fila (gris): destinos turisticos.
+    - Celda verde: existe una asignacion activa; muestra el numero de
+      asignacion y la cantidad de horas registradas.
+    - Celda blanca con "—": no hay asignacion para ese par bus-destino.
+    - El canvas tiene scroll en ambas direcciones para matrices grandes.
+
+BOTON REFRESCAR:
+  Redibuja las tres estructuras con los datos mas recientes de los servicios.
+  Utlicelo despues de realizar cambios en cualquier modulo para ver el
+  estado actualizado.
+
+BOTON MENU PRINCIPAL:
+  Regresa al menu principal del sistema.
+
+
+================================================================================
+9. REPORTES (PDF y HTML)
+================================================================================
+
+Cada modulo de gestion (Clientes, Buses, Destinos, Asignaciones, Boletos)
+ofrece la opcion de generar reportes. Se generan en dos formatos:
+
+  PDF  : documento portable, ideal para impresion y archivo.
+  HTML : pagina web, ideal para consulta rapida en el navegador.
+
+CONTENIDO DE CADA REPORTE:
+
+  REPORTE DE CLIENTES
+    Listado completo de clientes con: codigo, nombre completo, DPI, email
+    y telefono. Ordenado por codigo ascendente.
+
+  REPORTE DE BUSES
+    Listado de buses con: codigo, placa, tipo, capacidad, color, estado y
+    descripcion. Ordenado alfabeticamente por placa.
+
+  REPORTE DE DESTINOS
+    Listado de destinos con: codigo, nombre, fecha de salida, costo, estado
+    y descripcion. Ordenado por nombre.
+
+  REPORTE DE ASIGNACIONES
+    Listado detallado de asignaciones con: numero de asignacion, destino,
+    fecha de salida, placa del bus, tipo, capacidad y hora de salida.
+    Una fila por cada hora registrada en cada asignacion.
+
+  REPORTE DE BOLETOS
+    Listado de boletos emitidos con: codigo, cliente, destino, bus, hora
+    y costo. Ordenado por hora de salida.
+
+COMO GENERAR UN REPORTE:
+  1. Navegue al modulo correspondiente.
+  2. Haga clic en el boton "Reporte PDF" o "Reporte HTML".
+  3. Se abrira el archivo automaticamente con la aplicacion predeterminada
+     del sistema operativo.
+  4. En PDF: puede imprimirlo desde el visor.
+     En HTML: puede imprimirlo usando la funcion de impresion del navegador.
+
+
+================================================================================
+10. IMPORTACION Y EXPORTACION CSV
+================================================================================
+
+IMPORTACION CSV:
+  Permite cargar datos masivamente desde un archivo de texto estructurado.
+  Util para migrar datos de otro sistema o cargar datos de prueba.
+
+  Pasos:
+  1. Haga clic en "Importar CSV" en el modulo correspondiente.
+  2. Seleccione el archivo CSV desde el explorador de archivos.
+  3. El sistema procesa cada linea y reporta cuantos registros se importaron
+     y cuantos se rechazaron (con su motivo).
+
+  Notas de formato:
+  - Separador: coma (,)
+  - Codificacion: UTF-8
+  - Primera linea: puede ser encabezado o datos (el sistema lo detecta)
+  - Campos con comas deben encerrarse entre comillas: "Apellido, Jr."
+
+EXPORTACION CSV:
+  Permite guardar todos los registros actuales en un archivo CSV.
+
+  Pasos:
+  1. Haga clic en "Exportar CSV" en el modulo correspondiente.
+  2. Seleccione la carpeta y el nombre del archivo de destino.
+  3. El sistema guarda el archivo y muestra una confirmacion.
+
+  El archivo exportado puede:
+  - Abrirse en Microsoft Excel o LibreOffice Calc.
+  - Editarse en un editor de texto.
+  - Reimportarse al sistema despues de modificaciones.
+
+
+================================================================================
+11. REFERENCIA DE VALIDACIONES
+================================================================================
+
+A continuacion se detalla cada regla de validacion aplicada por el sistema.
+Los campos se validan en tiempo real mientras el usuario escribe; un icono
+verde o rojo indica el resultado inmediatamente.
+
+CAMPO: NOMBRE y APELLIDO (Clientes y Usuarios)
+  Regla    : Solo se permiten letras del alfabeto, tildes (a, e, i, o, u con
+             tilde), la letra "n" con virgulilla y espacios.
+  Invalido : "Juan2", "Carlos!", "Perez_Lopez"
+  Valido   : "Juan", "Maria Elena", "Lopez Garcia"
+
+CAMPO: DPI / CUI (Clientes)
+  Regla    : Exactamente 13 digitos numericos. Sin espacios ni guiones.
+             Corresponde al Codigo Unico de Identificacion guatemalteco.
+  Invalido : "123456", "1234-567-890123", "ABCDE12345678"
+  Valido   : "1234567890123"
+
+CAMPO: TELEFONO (Clientes)
+  Regla    : Exactamente 8 digitos numericos.
+             El primer digito debe ser 2, 3, 4, 5, 6 o 7.
+             (Estandar Guatemalteco: los numeros que comienzan con 0, 1, 8 o 9
+             no son validos para lineas comerciales o moviles convencionales.)
+  Invalido : "12345678", "9876543", "5551234"  (incompleto)
+  Valido   : "55551234", "23456789", "72345678"
+
+CAMPO: EMAIL
+  Regla    : Formato estandar usuario@dominio.tld
+             Debe contener exactamente un "@", con texto antes y despues,
+             y al menos un punto en el dominio.
+  Invalido : "usuario@", "@dominio.com", "usuario.com"
+  Valido   : "usuario@gmail.com", "nombre.apellido@empresa.com.gt"
+
+CAMPO: CONTRASENA (Clientes)
+  Regla    : Minimo 6 caracteres. No hay restriccion de tipo de caracter.
+  Invalido : "abc", "12345"
+  Valido   : "secreta", "Pass123!", "mi_contrasena"
+
+CAMPO: PLACA (Buses)
+  Regla    : Formato vehicular guatemalteco: X-000-XXX
+             Una letra mayuscula o minuscula, guion, exactamente tres digitos,
+             guion, exactamente tres letras.
+  Invalido : "123-ABC", "P123ABC", "P-12-ABC"
+  Valido   : "P-123-ABC", "M-456-XYZ", "c-789-def" (se convierte a mayusculas)
+
+CAMPO: CAPACIDAD (Buses)
+  Regla    : Debe estar dentro del rango del tipo de bus seleccionado:
+             - MICROBUS : 10 a 25 pasajeros
+             - COUNTY   : 26 a 45 pasajeros
+             - PULLMAN  : 46 a 80 pasajeros
+  Invalido : Capacidad 30 para un bus tipo MICROBUS
+  Valido   : Capacidad 30 para un bus tipo COUNTY
+
+CAMPO: COLOR (Buses)
+  Regla    : Solo letras y espacios. Sin numeros ni caracteres especiales.
+  Invalido : "Azul #1", "Rojo-Blanco"
+  Valido   : "Azul marino", "Rojo", "Blanco perla"
+
+CAMPO: COSTO DEL BOLETO (Destinos)
+  Regla    : Numero positivo mayor que cero. Acepta decimales.
+  Invalido : "-100", "0", "abc"
+  Valido   : "350", "450.50", "1200.00"
+
+CAMPO: HORA DE SALIDA (Asignaciones)
+  Regla    : Formato HH:mm. Hora entre 00:00 y 23:59.
+             La hora efectiva minima para asignaciones es 04:00 AM.
+             Diferencia minima de 1 hora con otras horas del mismo bus en
+             la misma fecha.
+  Invalido : "03:30" (antes de las 04:00), "25:00" (hora inexistente)
+  Valido   : "07:00", "14:30", "19:00"
+
+
+================================================================================
+12. CONTROL DE ACCESO POR ROL
+================================================================================
+
+El sistema implementa control de acceso basado en el rol del usuario autenticado.
+La siguiente tabla resume que acciones puede realizar cada rol:
+
+  +--------------------------------+-------+-----------+
+  | Accion                         | ADMIN | OPERADOR  |
+  +--------------------------------+-------+-----------+
+  | Ver/registrar/editar Clientes  |  SI   |    SI     |
+  | Eliminar Clientes              |  SI   |    SI     |
+  | Importar/Exportar Clientes CSV |  SI   |    SI     |
+  | Ver/registrar/editar Buses     |  SI   |    NO     |
+  | Eliminar Buses                 |  SI   |    NO     |
+  | Importar/Exportar Buses CSV    |  SI   |    NO     |
+  | Ver/registrar/editar Destinos  |  SI   |    NO     |
+  | Eliminar Destinos              |  SI   |    NO     |
+  | Importar/Exportar Destinos CSV |  SI   |    NO     |
+  | Crear/eliminar Asignaciones    |  SI   |    NO     |
+  | Comprar Boletos                |  SI   |    SI     |
+  | Cancelar Boletos               |  SI   |    SI     |
+  | Visualizador de Estructuras    |  SI   |    SI     |
+  | Generar Reportes PDF/HTML      |  SI   |    SI     |
+  +--------------------------------+-------+-----------+
+
+Cuando un OPERADOR inicia sesion, los modulos Buses, Destinos y Asignaciones
+se eliminan automaticamente del menu y no son accesibles por ninguna via.
+
+
+================================================================================
+13. PREGUNTAS FRECUENTES
+================================================================================
+
+P: No puedo asignar un bus a un destino. El sistema me muestra un error.
+R: Verifique lo siguiente:
+   a) El destino debe tener estado CONFIRMADO. Cambie el estado en el modulo 3.
+   b) El bus debe tener estado DISPONIBLE. Cambie el estado en el modulo 2.
+   c) La hora ingresada no debe ser antes de las 04:00 AM.
+   d) Si el bus ya tiene asignacion en otro destino el mismo dia, la hora nueva
+      debe diferir al menos 1 hora de todos los horarios ya registrados para
+      ese bus en esa fecha.
+
+P: No aparecen destinos en el modulo de Compra de Boletos.
+R: Para que un destino aparezca en la venta de boletos debe:
+   a) Tener estado CONFIRMADO.
+   b) Tener al menos un bus asignado con al menos una hora de salida.
+
+P: Elimine un destino pero el sistema no me lo permite.
+R: El destino tiene asignaciones activas en la Matriz Ortogonal. Primero vaya
+   al modulo 4, seleccione todas las asignaciones de ese destino y eliminalas.
+   Luego regrese al modulo 3 y elimine el destino.
+
+P: Quiero ver como esta organizada la informacion internamente.
+R: Use el Visualizador de Estructuras (Menu -> Visualizador de Estructuras).
+   Muestra el arbol de clientes, la lista de buses y la matriz de asignaciones
+   con los datos actuales del sistema en forma grafica.
+
+P: El reporte PDF no se abre.
+R: Verifique que tenga instalado un visor de PDF (Adobe Acrobat Reader,
+   Foxit, el visor integrado de Windows, etc.). El sistema intenta abrir el
+   archivo con la aplicacion predeterminada del sistema operativo.
+
+P: Importé un CSV y algunos registros no se importaron. Por qué?
+R: Los registros rechazados pueden deberse a:
+   - Formato de campo invalido (DPI incorrecto, placa con formato incorrecto, etc.)
+   - DPI o email duplicado (ya existe ese cliente en el sistema)
+   - Numero de campos incorrecto en la linea
+   Revise el resumen de importacion que muestra el sistema despues de procesar
+   el archivo.
+
+P: El sistema cierra inesperadamente. Pierdo los datos?
+R: Los datos del sistema se almacenan en memoria durante la sesion. Al cerrar
+   el sistema, los datos no se persisten automaticamente a disco (a menos que
+   haya exportado el CSV). Se recomienda exportar CSV al finalizar cada sesion
+   de trabajo.
+
+P: Cambié el bus de una asignacion. Los boletos ya vendidos siguen siendo validos?
+R: Si. Al cambiar el bus de una asignacion, todos los boletos ya emitidos para
+   esa asignacion se actualizan automaticamente. El nuevo bus queda registrado
+   en todos los boletos sin necesidad de reemitirlos.
+
+
+================================================================================
+FIN DEL MANUAL DE USUARIO
+Sistema Flotilla de Buses — Version 2.0
+================================================================================
