@@ -2,8 +2,8 @@
  * Clase: IconoValidacion
  * Descripción: Canvas personalizado que dibuja un icono de validación
  *              usando Java Graphics (JavaFX Canvas / GraphicsContext).
- *              - mostrarValido()   → círculo verde con ✔
- *              - mostrarInvalido() → círculo rojo con ✘
+ *              - mostrarValido()   → círculo verde con 
+ *              - mostrarInvalido() → círculo rojo con 
  *              - limpiar()         → borra el icono (estado neutro)
  */
 package flotabuses.utils;

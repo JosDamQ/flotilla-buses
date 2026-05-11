@@ -1,56 +1,82 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- * Clase: MatrizOrtogonal
- * Descripción: Matriz Ortogonal implementada desde cero con listas enlazadas.
- *              Usada en el Módulo 4: Asignación de buses a destinos turísticos.
- *
- *              Estructura:
- *                - FILAS    = Destinos turísticos (clave = nombre del destino)
- *                - COLUMNAS = Buses asignados     (clave = placa del bus)
- *                - CELDAS   = Objeto AsignacionBusDestino
- *
- *              Cada celda tiene 4 punteros (←→↑↓) para recorrer en cualquier
- *              dirección como lo requiere el proyecto.
- *
- *              El recorrido para mostrar datos se hace desde los controladores
- *              usando getCabFilas() o getCabColumnas(), haciendo cast al tipo:
- *
- *              Ejemplo desde un controlador:
- *                  NodoCabecera fila = matriz.getCabFilas();
- *                  while (fila != null) {
- *                      NodoMatriz celda = fila.primero;
- *                      while (celda != null) {
- *                          AsignacionBusDestino a = (AsignacionBusDestino) celda.dato;
- *                          celda = celda.derecha;
- *                      }
- *                      fila = fila.siguiente;
- *                  }
- */
 package flotabuses.estructuras;
 
 /**
+ * Matriz Ortogonal implementada con listas enlazadas dispersas.
+ *
+ * <p>Representa una tabla bidimensional donde cada celda puede o no tener
+ * un dato. En lugar de reservar memoria para todas las celdas posibles,
+ * solo se almacenan las celdas que contienen datos, lo que la hace eficiente
+ * cuando la mayoria de posibles intersecciones estan vacias.</p>
+ *
+ * <p>En este proyecto la matriz modela las asignaciones de buses a destinos:</p>
+ * <ul>
+ *   <li><b>Filas (eje vertical):</b> destinos turisticos, indexados por nombre.</li>
+ *   <li><b>Columnas (eje horizontal):</b> buses de la flotilla, indexados por placa.</li>
+ *   <li><b>Celda [destino][bus]:</b> contiene una instancia de
+ *       {@code AsignacionBusDestino} cuando el bus ha sido asignado a ese destino.</li>
+ * </ul>
+ *
+ * <p>Estructura interna:</p>
+ * <pre>
+ *   cabFilas  → [Antigua] → [Peten] → [Coban] → null
+ *       |
+ *   cabCols → [P-001-ABC] → [P-002-XYZ] → null
+ *
+ *   [Antigua][P-001-ABC] ←→ [Antigua][P-002-XYZ]
+ *        ↑↓                      ↑↓
+ *   [Peten][P-001-ABC]   ←→ [Peten][P-002-XYZ]
+ * </pre>
+ *
+ * <p>Recorrido por filas tipico desde un controlador:</p>
+ * <pre>
+ *   NodoCabecera fila = matriz.getCabFilas();
+ *   while (fila != null) {
+ *       NodoMatriz celda = fila.primero;
+ *       while (celda != null) {
+ *           AsignacionBusDestino a = (AsignacionBusDestino) celda.dato;
+ *           celda = celda.derecha;
+ *       }
+ *       fila = fila.siguiente;
+ *   }
+ * </pre>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see NodoCabecera
+ * @see NodoMatriz
  */
 public class MatrizOrtogonal {
-    private NodoCabecera cabFilas;    // Lista de cabeceras de FILAS    (destinos)
-    private NodoCabecera cabColumnas; // Lista de cabeceras de COLUMNAS (buses)
- 
-    /*
-     * Constructor: matriz vacía.
+
+    /**
+     * Lista enlazada de cabeceras de fila (una por cada destino turistico registrado).
+     * {@code null} si la matriz no tiene ninguna fila.
+     */
+    private NodoCabecera cabFilas;
+
+    /**
+     * Lista enlazada de cabeceras de columna (una por cada bus registrado).
+     * {@code null} si la matriz no tiene ninguna columna.
+     */
+    private NodoCabecera cabColumnas;
+
+    /**
+     * Construye una matriz ortogonal vacia sin filas ni columnas.
      */
     public MatrizOrtogonal() {
         this.cabFilas    = null;
         this.cabColumnas = null;
     }
- 
+
     // =========================================================
-    // MÉTODOS AUXILIARES DE CABECERAS
+    // METODOS AUXILIARES DE CABECERAS
     // =========================================================
- 
-    /*
-     * Busca o crea la cabecera de fila con la clave dada.
+
+    /**
+     * Busca la cabecera de fila con la clave indicada.
+     * Si no existe, la crea y la agrega al final de la lista de filas.
+     *
+     * @param clave nombre del destino turistico (clave de fila)
+     * @return el {@link NodoCabecera} de la fila, existente o recien creado
      */
     private NodoCabecera obtenerOCrearFila(String clave) {
         NodoCabecera actual = cabFilas;
@@ -68,9 +94,13 @@ public class MatrizOrtogonal {
         }
         return nueva;
     }
- 
-    /*
-     * Busca o crea la cabecera de columna con la clave dada.
+
+    /**
+     * Busca la cabecera de columna con la clave indicada.
+     * Si no existe, la crea y la agrega al final de la lista de columnas.
+     *
+     * @param clave placa del bus (clave de columna)
+     * @return el {@link NodoCabecera} de la columna, existente o recien creado
      */
     private NodoCabecera obtenerOCrearColumna(String clave) {
         NodoCabecera actual = cabColumnas;
@@ -88,34 +118,34 @@ public class MatrizOrtogonal {
         }
         return nueva;
     }
- 
+
     // =========================================================
     // INSERTAR
     // =========================================================
- 
-    /*
-     * Inserta una celda en la posición (filaKey, columnaKey) con el dato dado.
-     * Si ya existe una celda en esa posición actualiza su dato.
+
+    /**
+     * Inserta o actualiza la celda en la posicion (filaKey, columnaKey).
+     * Si la celda ya existe, solo actualiza su dato sin crear un nuevo nodo.
+     * Si es nueva, enlaza el nodo horizontal y verticalmente con sus vecinos.
      *
-     * Parámetros:
-     *   filaKey    - nombre del destino turístico
-     *   columnaKey - placa del bus
-     *   dato       - objeto AsignacionBusDestino
+     * @param filaKey    nombre del destino turistico (clave de fila)
+     * @param columnaKey placa del bus (clave de columna)
+     * @param dato       instancia de {@code AsignacionBusDestino} a almacenar
      */
     public void insertar(String filaKey, String columnaKey, Object dato) {
         NodoCabecera cabFila    = obtenerOCrearFila(filaKey);
         NodoCabecera cabColumna = obtenerOCrearColumna(columnaKey);
- 
-        // Si ya existe la celda, solo actualiza el dato
+
+        // Si ya existe, solo actualizar el dato
         NodoMatriz existente = buscarNodo(filaKey, columnaKey);
         if (existente != null) {
             existente.dato = dato;
             return;
         }
- 
+
         NodoMatriz nuevo = new NodoMatriz(filaKey, columnaKey, dato);
- 
-        // Enlazar horizontalmente en la fila
+
+        // Enlazar horizontalmente dentro de la fila
         if (cabFila.primero == null) {
             cabFila.primero = nuevo;
         } else {
@@ -124,8 +154,8 @@ public class MatrizOrtogonal {
             actualFila.derecha = nuevo;
             nuevo.izquierda    = actualFila;
         }
- 
-        // Enlazar verticalmente en la columna
+
+        // Enlazar verticalmente dentro de la columna
         if (cabColumna.primero == null) {
             cabColumna.primero = nuevo;
         } else {
@@ -135,13 +165,18 @@ public class MatrizOrtogonal {
             nuevo.arriba    = actualCol;
         }
     }
- 
+
     // =========================================================
     // BUSCAR
     // =========================================================
- 
-    /*
-     * Método privado: retorna el NodoMatriz en (filaKey, columnaKey) o null.
+
+    /**
+     * Busca el {@link NodoMatriz} ubicado en la interseccion (filaKey, columnaKey).
+     * Se utiliza internamente para operaciones de insercion y eliminacion.
+     *
+     * @param filaKey    nombre del destino turistico
+     * @param columnaKey placa del bus
+     * @return el {@link NodoMatriz} encontrado, o {@code null} si la celda no existe
      */
     private NodoMatriz buscarNodo(String filaKey, String columnaKey) {
         NodoCabecera cf = cabFilas;
@@ -158,30 +193,45 @@ public class MatrizOrtogonal {
         }
         return null;
     }
- 
-    /*
-     * Método público: retorna el dato de la celda (filaKey, columnaKey).
-     * Desde el controlador hacés cast:
-     *   AsignacionBusDestino a = (AsignacionBusDestino) matriz.buscar("Antigua", "ABC-123");
+
+    /**
+     * Retorna el dato almacenado en la celda (filaKey, columnaKey).
+     *
+     * <p>Uso tipico:</p>
+     * <pre>
+     *   AsignacionBusDestino a =
+     *       (AsignacionBusDestino) matriz.buscar("Antigua", "P-123-ABC");
+     * </pre>
+     *
+     * @param filaKey    nombre del destino turistico (clave de fila)
+     * @param columnaKey placa del bus (clave de columna)
+     * @return el dato de la celda, o {@code null} si la celda no existe
      */
     public Object buscar(String filaKey, String columnaKey) {
         NodoMatriz nodo = buscarNodo(filaKey, columnaKey);
         return nodo != null ? nodo.dato : null;
     }
- 
+
     // =========================================================
     // ELIMINAR
     // =========================================================
- 
-    /*
-     * Elimina la celda en (filaKey, columnaKey) actualizando todos los enlaces.
-     * Retorna true si eliminó, false si no encontró la celda.
+
+    /**
+     * Elimina la celda en la posicion (filaKey, columnaKey) y repara todos
+     * los enlaces horizontales y verticales afectados.
+     * Si la fila o la columna queda sin celdas, la cabecera permanece
+     * (no se eliminan cabeceras automaticamente).
+     *
+     * @param filaKey    nombre del destino turistico (clave de fila)
+     * @param columnaKey placa del bus (clave de columna)
+     * @return {@code true} si la celda fue encontrada y eliminada;
+     *         {@code false} si la celda no existia
      */
     public boolean eliminar(String filaKey, String columnaKey) {
         NodoMatriz nodo = buscarNodo(filaKey, columnaKey);
         if (nodo == null) return false;
- 
-        // Reparar enlaces horizontales
+
+        // Reparar enlaces horizontales (dentro de la fila)
         if (nodo.izquierda != null) {
             nodo.izquierda.derecha = nodo.derecha;
         } else {
@@ -192,8 +242,8 @@ public class MatrizOrtogonal {
             }
         }
         if (nodo.derecha != null) nodo.derecha.izquierda = nodo.izquierda;
- 
-        // Reparar enlaces verticales
+
+        // Reparar enlaces verticales (dentro de la columna)
         if (nodo.arriba != null) {
             nodo.arriba.abajo = nodo.abajo;
         } else {
@@ -204,28 +254,36 @@ public class MatrizOrtogonal {
             }
         }
         if (nodo.abajo != null) nodo.abajo.arriba = nodo.arriba;
- 
+
         return true;
     }
- 
+
     // =========================================================
-    // GETTERS Y UTILS
+    // GETTERS Y UTILIDADES
     // =========================================================
- 
-    /*
-     * Retorna la cabecera de filas (destinos).
-     * Usado desde controladores para recorrer la matriz por filas.
+
+    /**
+     * Retorna la primera cabecera de fila de la matriz.
+     * Punto de entrada para recorridos por filas (por destino).
+     *
+     * @return el {@link NodoCabecera} de la primera fila,
+     *         o {@code null} si la matriz esta vacia
      */
     public NodoCabecera getCabFilas() { return cabFilas; }
- 
-    /*
-     * Retorna la cabecera de columnas (buses).
-     * Usado desde controladores para recorrer la matriz por columnas.
+
+    /**
+     * Retorna la primera cabecera de columna de la matriz.
+     * Punto de entrada para recorridos por columnas (por bus).
+     *
+     * @return el {@link NodoCabecera} de la primera columna,
+     *         o {@code null} si no hay columnas registradas
      */
     public NodoCabecera getCabColumnas() { return cabColumnas; }
- 
-    /*
-     * Verifica si la matriz no tiene celdas.
+
+    /**
+     * Indica si la matriz no tiene ninguna fila ni celda registrada.
+     *
+     * @return {@code true} si la matriz esta vacia; {@code false} en caso contrario
      */
     public boolean estaVacia() { return cabFilas == null; }
 }

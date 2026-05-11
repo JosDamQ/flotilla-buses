@@ -1,65 +1,95 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- * Clase: ListaDoblementeEnlazada
- * Descripción: Lista Doblemente Enlazada implementada desde cero.
- *              Genérica (usa Object), ordenada alfabéticamente por clave (String).
- *              Reutilizada en:
- *                - Módulo Flotilla de Buses   (clave = placa)
- *                - Módulo Destinos Turísticos (clave = nombre del destino)
- *                - Módulo Boletos             (clave = hora seleccionada)
- *                - Horas disponibles en AsignacionBusDestino (clave = "HH:mm")
- *
- *              El recorrido para mostrar datos se hace desde los controladores
- *              usando getCabeza() o getCola(), haciendo cast al tipo correspondiente.
- *
- *              Ejemplo de uso desde un controlador:
- *                  NodoLista actual = lista.getCabeza();
- *                  while (actual != null) {
- *                      Bus b = (Bus) actual.dato;
- *                      actual = actual.siguiente;
- *                  }
- */
 package flotabuses.estructuras;
 
 /**
+ * Lista Doblemente Enlazada de proposito general con insercion ordenada.
+ *
+ * <p>Mantiene los nodos en orden alfabetico ascendente segun su clave de texto.
+ * No admite claves duplicadas. Cada nodo tiene punteros al anterior y al
+ * siguiente, lo que permite recorridos eficientes en ambas direcciones.</p>
+ *
+ * <p>Esta estructura se reutiliza en varios modulos del sistema:</p>
+ * <ul>
+ *   <li><b>Buses:</b> clave = placa, dato = {@code Bus}</li>
+ *   <li><b>Destinos:</b> clave = nombre del destino, dato = {@code Destino}</li>
+ *   <li><b>Horas de asignacion:</b> clave = "HH:mm", dato = {@code LocalTime}</li>
+ *   <li><b>Boletos:</b> clave = "HH:mm" hora seleccionada, dato = {@code Boleto}</li>
+ * </ul>
+ *
+ * <p>Recorrido ascendente tipico desde un controlador:</p>
+ * <pre>
+ *   NodoLista actual = lista.getCabeza();
+ *   while (actual != null) {
+ *       Bus b = (Bus) actual.dato;
+ *       actual = actual.siguiente;
+ *   }
+ * </pre>
+ *
+ * <p>Recorrido descendente tipico:</p>
+ * <pre>
+ *   NodoLista actual = lista.getCola();
+ *   while (actual != null) {
+ *       Bus b = (Bus) actual.dato;
+ *       actual = actual.anterior;
+ *   }
+ * </pre>
+ *
+ * <p>Complejidad de insercion ordenada: O(n). Busqueda y eliminacion: O(n).</p>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see NodoLista
  */
 public class ListaDoblementeEnlazada {
-    private NodoLista cabeza;   // Primer nodo de la lista
-    private NodoLista cola;     // Último nodo de la lista
-    private int       tamanio;  // Cantidad de elementos
- 
-    /*
-     * Constructor: lista vacía.
+
+    /** Primer nodo de la lista. {@code null} si la lista esta vacia. */
+    private NodoLista cabeza;
+
+    /** Ultimo nodo de la lista. {@code null} si la lista esta vacia. */
+    private NodoLista cola;
+
+    /** Numero de elementos actualmente en la lista. */
+    private int tamanio;
+
+    /**
+     * Construye una lista doblemente enlazada vacia.
      */
     public ListaDoblementeEnlazada() {
         this.cabeza  = null;
         this.cola    = null;
         this.tamanio = 0;
     }
- 
+
     // =========================================================
     // INSERTAR ORDENADO
     // =========================================================
- 
-    /*
-     * Inserta un nuevo nodo manteniendo orden alfabético ascendente por clave.
-     * Si la clave ya existe no inserta duplicados.
+
+    /**
+     * Inserta un nuevo nodo manteniendo el orden alfabetico ascendente por clave.
+     * Si la clave ya existe en la lista, la operacion no tiene efecto.
+     *
+     * <p>Casos de insercion manejados:</p>
+     * <ol>
+     *   <li>Lista vacia: el nuevo nodo es cabeza y cola a la vez.</li>
+     *   <li>Clave menor que la cabeza: se inserta al inicio.</li>
+     *   <li>Clave mayor que la cola: se inserta al final.</li>
+     *   <li>Caso general: se recorre la lista para encontrar la posicion correcta.</li>
+     * </ol>
+     *
+     * @param clave identificador de texto que determina la posicion del nodo
+     * @param dato  objeto a almacenar en el nuevo nodo
      */
     public void insertarOrdenado(String clave, Object dato) {
         NodoLista nuevo = new NodoLista(clave, dato);
- 
-        // Caso 1: lista vacía
+
+        // Caso 1: lista vacia
         if (cabeza == null) {
             cabeza = nuevo;
             cola   = nuevo;
             tamanio++;
             return;
         }
- 
-        // Caso 2: va antes de la cabeza
+
+        // Caso 2: va antes de la cabeza actual
         if (clave.compareToIgnoreCase(cabeza.clave) < 0) {
             nuevo.siguiente = cabeza;
             cabeza.anterior = nuevo;
@@ -67,8 +97,8 @@ public class ListaDoblementeEnlazada {
             tamanio++;
             return;
         }
- 
-        // Caso 3: va al final
+
+        // Caso 3: va despues de la cola actual
         if (clave.compareToIgnoreCase(cola.clave) > 0) {
             nuevo.anterior = cola;
             cola.siguiente = nuevo;
@@ -76,13 +106,13 @@ public class ListaDoblementeEnlazada {
             tamanio++;
             return;
         }
- 
-        // Caso 4: posición intermedia
+
+        // Caso 4: posicion intermedia — recorrer para encontrar el lugar
         NodoLista actual = cabeza.siguiente;
         while (actual != null) {
             int comparacion = clave.compareToIgnoreCase(actual.clave);
             if (comparacion == 0) {
-                return; // Duplicado, no se inserta
+                return; // Duplicado: no se inserta
             }
             if (comparacion < 0) {
                 nuevo.siguiente           = actual;
@@ -95,15 +125,22 @@ public class ListaDoblementeEnlazada {
             actual = actual.siguiente;
         }
     }
- 
+
     // =========================================================
     // BUSCAR
     // =========================================================
- 
-    /*
-     * Busca un nodo por su clave (de cabeza a cola).
-     * Retorna el dato (Object) si lo encuentra, null si no existe.
-     * Desde el controlador hacés cast: Bus b = (Bus) lista.buscar("ABC-123");
+
+    /**
+     * Busca un nodo por su clave y retorna el dato almacenado.
+     * La busqueda se realiza desde la cabeza hacia la cola (O(n)).
+     *
+     * <p>Uso tipico:</p>
+     * <pre>
+     *   Bus b = (Bus) lista.buscar("P-123-ABC");
+     * </pre>
+     *
+     * @param clave identificador de texto del nodo buscado
+     * @return el dato almacenado en el nodo, o {@code null} si la clave no existe
      */
     public Object buscar(String clave) {
         NodoLista actual = cabeza;
@@ -115,15 +152,19 @@ public class ListaDoblementeEnlazada {
         }
         return null;
     }
- 
+
     // =========================================================
     // ELIMINAR
     // =========================================================
- 
-    /*
-     * Elimina el nodo cuya clave coincide.
-     * Maneja los casos: cabeza, cola e intermedio.
-     * Retorna true si eliminó, false si no encontró la clave.
+
+    /**
+     * Elimina el nodo cuya clave coincide con la indicada.
+     * Actualiza correctamente los punteros de los nodos adyacentes
+     * y las referencias a cabeza y cola si corresponde.
+     *
+     * @param clave identificador de texto del nodo a eliminar
+     * @return {@code true} si el nodo fue encontrado y eliminado;
+     *         {@code false} si la clave no existe en la lista
      */
     public boolean eliminar(String clave) {
         NodoLista actual = cabeza;
@@ -152,36 +193,38 @@ public class ListaDoblementeEnlazada {
         }
         return false;
     }
- 
+
     // =========================================================
-    // GETTERS Y UTILS
+    // GETTERS Y UTILIDADES
     // =========================================================
- 
-    /*
-     * Retorna la cabeza de la lista.
-     * Usado desde controladores para recorrido ascendente:
+
+    /**
+     * Retorna el primer nodo de la lista (cabeza).
+     * Punto de entrada para recorridos ascendentes.
      *
-     *   NodoLista actual = lista.getCabeza();
-     *   while (actual != null) { ... actual = actual.siguiente; }
+     * @return el {@link NodoLista} cabeza, o {@code null} si la lista esta vacia
      */
     public NodoLista getCabeza() { return cabeza; }
- 
-    /*
-     * Retorna la cola de la lista.
-     * Usado desde controladores para recorrido descendente:
+
+    /**
+     * Retorna el ultimo nodo de la lista (cola).
+     * Punto de entrada para recorridos descendentes.
      *
-     *   NodoLista actual = lista.getCola();
-     *   while (actual != null) { ... actual = actual.anterior; }
+     * @return el {@link NodoLista} cola, o {@code null} si la lista esta vacia
      */
     public NodoLista getCola() { return cola; }
- 
-    /*
-     * Retorna la cantidad de elementos en la lista.
+
+    /**
+     * Retorna el numero de elementos actualmente en la lista.
+     *
+     * @return cantidad de nodos en la lista
      */
     public int getTamanio() { return tamanio; }
- 
-    /*
-     * Verifica si la lista está vacía.
+
+    /**
+     * Indica si la lista no contiene ningun nodo.
+     *
+     * @return {@code true} si la lista esta vacia; {@code false} en caso contrario
      */
     public boolean estaVacia() { return cabeza == null; }
 }
