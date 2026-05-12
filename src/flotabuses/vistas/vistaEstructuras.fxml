@@ -1,38 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.Group?>
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.Group?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Ellipse?>
+<?import javafx.scene.shape.Rectangle?>
 
-<AnchorPane minHeight="600.0" minWidth="900.0" prefHeight="700.0" prefWidth="1100.0"
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="700.0" prefWidth="1100.0"
             xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="flotabuses.controladores.VisualizadorEstructurasController">
    <children>
 
-      <!-- Barra de herramientas superior -->
-      <HBox alignment="CENTER_LEFT" layoutX="0.0" layoutY="0.0"
-            prefWidth="1100.0" prefHeight="38.0" spacing="12.0"
-            style="-fx-background-color: #2c3e50; -fx-padding: 5 10 5 10;">
+      <!-- Fondo decorativo — mismo estilo que todos los modulos -->
+      <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#84b4d4" height="710.0"
+                 layoutX="284.0" stroke="#84b4d4" strokeType="INSIDE" width="820.0" />
+      <Ellipse fill="#dde4ef" layoutX="193.0" layoutY="146.0"
+               radiusX="357.0" radiusY="422.0" rotate="-36.9"
+               stroke="#dde4ef" strokeType="INSIDE" />
+      <Ellipse fill="#54a4d3" layoutX="219.0" layoutY="595.0"
+               radiusX="374.0" radiusY="213.0" rotate="-167.5"
+               stroke="#54a4d3" strokeType="INSIDE" />
+
+      <!-- Panel lateral izquierdo rotado con nombre del modulo -->
+      <Pane layoutX="-123.0" layoutY="-127.0" prefHeight="377.0" prefWidth="123.0"
+            rotate="90.0" style="-fx-background-color: #ddaca0; -fx-background-radius: 100 100 50 50;">
          <children>
-            <Label text="Visualizador de Estructuras de Datos"
-                   style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14;"/>
-            <Button onAction="#refrescar" text="Refrescar"
-                    style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
-            <Button onAction="#volverMenu" text="Menu Principal"
-                    style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+            <ImageView fitHeight="76.0" fitWidth="69.0" layoutX="40.0" layoutY="48.0"
+                       pickOnBounds="true" preserveRatio="true" rotate="-90.0">
+               <image>
+                  <Image url="@../images/Icon.png" />
+               </image>
+            </ImageView>
+            <Label layoutX="2.0" layoutY="77.0" rotate="-90.0" text="Visualizador" />
+         </children>
+      </Pane>
+
+      <!-- Boton volver al menu principal (icono go-back) -->
+      <ImageView fitHeight="81.0" fitWidth="76.0" layoutX="22.0" layoutY="595.0"
+                 onMouseClicked="#volverMenu" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../images/go-back.png" />
+         </image>
+      </ImageView>
+
+      <!-- Botones de accion — estilo button1 identico al resto de pantallas -->
+      <HBox layoutX="174.0" layoutY="597.0" prefHeight="95.0" prefWidth="300.0">
+         <children>
+            <Button fx:id="btnRefrescar" contentDisplay="TOP" mnemonicParsing="false"
+                    onAction="#refrescar" prefHeight="90.0" prefWidth="120.0"
+                    styleClass="button1" stylesheets="@../utils/FlotaBuses.css"
+                    text="Refrescar">
+               <graphic>
+                  <ImageView fitHeight="65.0" fitWidth="65.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../images/Save.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
          </children>
       </HBox>
 
-      <!-- Panel de pestanas con los tres visualizadores -->
-      <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE"
-               AnchorPane.topAnchor="38.0" AnchorPane.bottomAnchor="0.0"
-               AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+      <!-- TabPane con las tres estructuras de datos -->
+      <TabPane tabClosingPolicy="UNAVAILABLE"
+               layoutX="125.0" layoutY="5.0"
+               prefHeight="580.0" prefWidth="965.0"
+               stylesheets="@../utils/FlotaBuses.css">
          <tabs>
 
             <!-- Tab 1: Arbol Binario de Busqueda (Clientes) -->
@@ -43,7 +86,7 @@
                      <content>
                         <Group>
                            <children>
-                              <Canvas fx:id="canvasArbol" width="1100.0" height="550.0"/>
+                              <Canvas fx:id="canvasArbol" width="1100.0" height="530.0"/>
                            </children>
                         </Group>
                      </content>
@@ -52,7 +95,7 @@
             </Tab>
 
             <!-- Tab 2: Lista Doblemente Enlazada (Buses) -->
-            <Tab text="Lista Doblemente Enlazada — Buses">
+            <Tab text="Lista Doble — Buses">
                <content>
                   <ScrollPane fitToWidth="false" fitToHeight="false"
                               hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED">
@@ -75,7 +118,7 @@
                      <content>
                         <Group>
                            <children>
-                              <Canvas fx:id="canvasMatriz" width="1400.0" height="600.0"/>
+                              <Canvas fx:id="canvasMatriz" width="1400.0" height="530.0"/>
                            </children>
                         </Group>
                      </content>
@@ -85,5 +128,6 @@
 
          </tabs>
       </TabPane>
+
    </children>
 </AnchorPane>
