@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"/></head>
+<body>
+
+<h2>Sistema Flotilla de Buses — Agencia Turistica de Guatemala</h2>
+
+<p>
+  Aplicacion de escritorio desarrollada en <b>Java 21</b> con <b>JavaFX 21.0.10</b>
+  que permite a la agencia administrar su flotilla de buses, programar destinos
+  turisticos, asignar buses a destinos con horarios de salida y vender boletos
+  a clientes registrados.
+</p>
+
+<h3>Arquitectura general</h3>
+<p>
+  El sistema sigue el patron <b>MVC (Model-View-Controller)</b>:
+</p>
+<ul>
+  <li><b>Modelos</b> ({@link flotabuses.modelos}) — entidades de dominio puras sin logica de negocio.</li>
+  <li><b>Servicios</b> ({@link flotabuses.servicios}) — capa de negocio con patron Singleton; cada servicio
+      posee y gestiona la estructura de datos que persiste los datos durante la sesion.</li>
+  <li><b>Controladores</b> ({@link flotabuses.controladores}) — reciben eventos de la UI (FXML), invocan
+      servicios y actualizan la vista.</li>
+  <li><b>Vistas</b> (FXML en <code>src/flotabuses/vistas/</code>) — definicion declarativa de la interfaz.</li>
+</ul>
+
+<h3>Estructuras de datos personalizadas</h3>
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr><th>Estructura</th><th>Paquete</th><th>Modulo que la usa</th><th>Clave de ordenamiento</th></tr>
+  <tr>
+    <td>{@link flotabuses.estructuras.ArbolBinarioBusqueda}</td>
+    <td>estructuras</td>
+    <td>Clientes</td>
+    <td>codigoCliente (entero, incremental)</td>
+  </tr>
+  <tr>
+    <td>{@link flotabuses.estructuras.ListaDoblementeEnlazada}</td>
+    <td>estructuras</td>
+    <td>Buses, Destinos, Horas de asignacion, Boletos</td>
+    <td>placa / nombre / "HH:mm" / "HH:mm_NNNN"</td>
+  </tr>
+  <tr>
+    <td>{@link flotabuses.estructuras.MatrizOrtogonal}</td>
+    <td>estructuras</td>
+    <td>Asignaciones bus-destino</td>
+    <td>fila = nombre destino, columna = placa bus</td>
+  </tr>
+</table>
+
+<h3>Flujo de datos entre modulos</h3>
+<pre>
+  [Cliente]                        [Bus]
+      |                               |
+      v                               v
+  ClienteService               BusService
+  ArbolBinarioBusqueda         ListaDoblementeEnlazada
+      |                               |
+      +----------+   +----------------+
+                 |   |
+                 v   v
+         AsignacionBusDestinoService
+              MatrizOrtogonal
+           [fila=Destino][col=Bus]
+                    |
+                    v
+             BoletoService
+         ListaDoblementeEnlazada
+            (ordenada por hora)
+</pre>
+
+<h3>Control de acceso por rol</h3>
+<ul>
+  <li><b>ADMIN:</b> acceso completo a todos los modulos.</li>
+  <li><b>OPERADOR:</b> acceso solo a Clientes y Compra de Boletos;
+      los modulos Buses, Destinos y Asignaciones se eliminan del menu.</li>
+</ul>
+
+<h3>Validaciones de formato (estandar guatemalteco)</h3>
+<ul>
+  <li><b>DPI:</b> exactamente 13 digitos numericos (CUI).</li>
+  <li><b>Telefono:</b> 8 digitos; primer digito entre 2 y 7.</li>
+  <li><b>Placa:</b> formato X-000-XXX (una letra, guion, 3 digitos, guion, 3 letras).</li>
+  <li><b>Email:</b> formato usuario@dominio.tld.</li>
+  <li><b>Contrasena:</b> minimo 6 caracteres.</li>
+</ul>
+
+<h3>Paquetes del sistema</h3>
+<ul>
+  <li>{@link flotabuses.estructuras} — implementaciones propias de ABB, Lista Doble y Matriz Ortogonal.</li>
+  <li>{@link flotabuses.modelos} — entidades de dominio (Bus, Cliente, Destino, AsignacionBusDestino, Boleto, Usuario).</li>
+  <li>{@link flotabuses.servicios} — logica de negocio y gestion de datos en memoria.</li>
+  <li>{@link flotabuses.controladores} — controladores JavaFX de cada pantalla.</li>
+  <li>{@link flotabuses.enums} — tipos enumerados del dominio.</li>
+  <li>{@link flotabuses.utils} — validacion de campos y componentes graficos auxiliares.</li>
+  <li>{@link flotabuses.main} — punto de entrada de la aplicacion JavaFX.</li>
+</ul>
+
+</body>
+</html>
