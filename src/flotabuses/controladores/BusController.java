@@ -47,71 +47,180 @@ import javafx.stage.FileChooser;
 
 
 /**
+ * Controlador del modulo de gestion de la flotilla de buses (M2).
+ *
+ * <p>Implementa el patron MVC: gestiona la pantalla {@code busView.fxml} y
+ * delega la persistencia a {@link flotabuses.servicios.BusService}.</p>
+ *
+ * <p>Opera como una maquina de estados a traves de {@link #tipoOperacion}.
+ * Los flujos CRUD son los mismos que en {@link ClienteController}:</p>
+ * <pre>
+ *   NINGUNO  --(nuevo())--> GUARDAR  --(nuevo())--> NINGUNO   (registro creado)
+ *   NINGUNO  --(editar())--> ACTUALIZAR  --(editar())--> NINGUNO   (registro actualizado)
+ *   NINGUNO  --(eliminar())--> confirmacion --> NINGUNO  (registro eliminado)
+ *   GUARDAR | ACTUALIZAR --(eliminar()/reporte())--> NINGUNO  (cancelar)
+ * </pre>
+ *
+ * <p>Diferencias clave respecto a {@link ClienteController}:</p>
+ * <ul>
+ *   <li>Los campos {@code txtPlaca} y {@code cmbTipo} se bloquean en modo
+ *       edicion: la placa es la clave de busqueda y el tipo no puede cambiar
+ *       una vez registrado (afectaria la validacion de capacidad).</li>
+ *   <li>La capacidad se valida contra el rango del tipo de bus seleccionado
+ *       ({@link flotabuses.enums.TipoBus#capacidadValida(int)}).</li>
+ *   <li>Solo se validan con icono Canvas los campos: placa, capacidad y color.</li>
+ * </ul>
+ *
+ * <p>El boton CSV solo es visible para el rol {@code ADMIN}.</p>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see flotabuses.servicios.BusService
+ * @see flotabuses.modelos.Bus
+ * @see flotabuses.enums.TipoBus
+ * @see flotabuses.enums.EstadoBus
+ * @see flotabuses.enums.Operaciones
  */
 public class BusController implements Initializable{
+
+    /** Referencia a la aplicacion principal para la navegacion entre escenas. */
     private FlotaBuses escenarioPrincipal;
+
+    /**
+     * Estado actual de la maquina de estados CRUD.
+     * Controla el comportamiento de los botones Nuevo, Eliminar, Editar y Reporte.
+     */
     private Operaciones tipoOperacion = Operaciones.NINGUNO;
-    
+
+    /** Servicio Singleton que gestiona la lista doblemente enlazada de buses. */
     private BusService busService = BusService.getInstance();
-    
+
+    /** Boton dual: "Nuevo" en estado NINGUNO / "Guardar" en estado GUARDAR. */
     @FXML
     private Button btnEditar;
+
+    /** Boton dual: "Eliminar" en estado NINGUNO / "Cancelar" en estado GUARDAR. */
     @FXML
     private Button btnEliminar;
+
+    /** Boton dual: "Editar" en estado NINGUNO / "Actualizar" en estado ACTUALIZAR. */
     @FXML
     private Button btnNuevo;
+
+    /** Boton dual: "Reporte" en estado NINGUNO / "Cancelar" en estado ACTUALIZAR. */
     @FXML
     private Button btnReporte;
+
+    /** Boton para importar/exportar CSV. Solo visible para el rol ADMIN. */
     @FXML
     private Button btnCSV;
-    @FXML 
+
+    /** ComboBox con los estados operativos del bus (DISPONIBLE / NO_DISPONIBLE). */
+    @FXML
     private ComboBox<EstadoBus> cmbEstado;
-    @FXML 
+
+    /**
+     * ComboBox con los tipos de bus (MICROBUS, COUNTY, PULLMAN).
+     * Se bloquea en modo edicion ya que el tipo determina el rango de capacidad.
+     */
+    @FXML
     private ComboBox<TipoBus>   cmbTipo;
-    @FXML 
+
+    /** Columna del codigo interno del bus. */
+    @FXML
     private TableColumn<Bus, Integer>  colCodigoBus;
-    @FXML 
+
+    /** Columna de la placa del bus (clave unica, formato guatemalteco X-000-XXX). */
+    @FXML
     private TableColumn<Bus, String>   colPlaca;
-    @FXML 
+
+    /** Columna del tipo de bus. */
+    @FXML
     private TableColumn<Bus, String>   colTipo;
-    @FXML 
+
+    /** Columna de la capacidad de pasajeros. */
+    @FXML
     private TableColumn<Bus, Integer>  colCapacidad;
-    @FXML 
+
+    /** Columna del color del bus. */
+    @FXML
     private TableColumn<Bus, String>   colColor;
-    @FXML 
+
+    /** Columna del estado operativo del bus. */
+    @FXML
     private TableColumn<Bus, String>   colEstado;
-    @FXML 
+
+    /** Columna de la descripcion libre del bus. */
+    @FXML
     private TableColumn<Bus, String>   colDescripcion;
+
+    /** Icono del boton Editar; cambia entre Edit.png y Save.png segun el estado. */
     @FXML
     private ImageView imgEditar;
+
+    /** Icono del boton Eliminar; cambia entre Quitar.png y Cancel.png segun el estado. */
     @FXML
     private ImageView imgEliminar;
+
+    /** Icono del boton Nuevo; cambia entre Agregar.png y Save.png segun el estado. */
     @FXML
     private ImageView imgNuevo;
+
+    /** Icono del boton Reporte; cambia entre Reporte.png y Cancel.png segun el estado. */
     @FXML
     private ImageView imgReporte;
+
+    /** Icono del boton CSV. */
     @FXML
     private ImageView imgCSV;
+
+    /** Tabla que muestra todos los buses registrados ordenados por placa. */
     @FXML
     private TableView<Bus> tblBuses;
+
+    /** Campo de texto para la capacidad del bus. TextFormatter restringe a 4 digitos. */
     @FXML
     private TextField txtCapacidad;
+
+    /** Campo de texto para el color del bus. Solo letras y espacios. */
     @FXML
     private TextField txtColor;
+
+    /** Campo de texto para la descripcion libre del bus. */
     @FXML
     private TextField txtDescripcion;
+
+    /**
+     * Campo de texto para la placa del bus (formato X-000-XXX).
+     * TextFormatter restringe a letras, digitos y guion, maximo 9 caracteres.
+     * Se pone en modo no editable al actualizar.
+     */
     @FXML
     private TextField txtPlaca;
+
+    /** Contenedor GridPane donde se inyectan los iconos de validacion Canvas. */
     @FXML
     private GridPane gridDatos;
 
     // ── Iconos de validación (Canvas) ────────────────────
+    /** Icono Canvas que indica validez del campo placa en tiempo real. */
     private IconoValidacion icoPlaca;
+
+    /** Icono Canvas que indica validez del campo capacidad en tiempo real. */
     private IconoValidacion icoCapacidad;
+
+    /** Icono Canvas que indica validez del campo color en tiempo real. */
     private IconoValidacion icoColor;
 
+    /**
+     * Inicializa el controlador tras cargar el FXML.
+     * Carga los valores de los ComboBox, aplica TextFormatters a los campos
+     * numericos y de placa, inyecta los iconos Canvas de validacion y
+     * carga los datos iniciales en la tabla.
+     *
+     * @param location  URL del archivo FXML (no utilizado)
+     * @param resources paquete de recursos de internacionalizacion (no utilizado)
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbTipo.setItems(FXCollections.observableArrayList(TipoBus.values()));
@@ -142,10 +251,22 @@ public class BusController implements Initializable{
         cargarDatos();
     }
     
+    /**
+     * Retorna la instancia principal de la aplicacion.
+     *
+     * @return referencia a {@link FlotaBuses}
+     */
     public FlotaBuses getEscenarioPrincipal() {
         return escenarioPrincipal;
     }
-    
+
+    /**
+     * Inyecta la instancia principal de la aplicacion y aplica restricciones
+     * de visibilidad segun el rol del usuario autenticado.
+     * Si el usuario tiene rol {@code OPERADOR}, oculta y descarta el boton CSV.
+     *
+     * @param escenarioPrincipal instancia principal de la aplicacion
+     */
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         if (escenarioPrincipal.getUsuarioActual() != null
@@ -154,11 +275,20 @@ public class BusController implements Initializable{
             btnCSV.setManaged(false);
         }
     }
-    
+
+    /**
+     * Navega de regreso al menu principal invocando
+     * {@link FlotaBuses#menuPrincipal()}.
+     */
     public void menuPrincipal(){
         escenarioPrincipal.menuPrincipal();
     }
-    
+
+    /**
+     * Carga todos los buses del servicio en la tabla y configura las
+     * {@code PropertyValueFactory} de cada columna.
+     * Se llama al inicializar y despues de cada operacion CRUD exitosa.
+     */
     public void cargarDatos() {
         tblBuses.setItems(busService.obtenerTodos());
         colCodigoBus.setCellValueFactory(new PropertyValueFactory<>("codigoBus"));
@@ -170,6 +300,18 @@ public class BusController implements Initializable{
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → GUARDAR:</b> limpia y activa controles, cambia etiquetas e
+     *       iconos y avanza el estado a {@code GUARDAR}.</li>
+     *   <li><b>GUARDAR → NINGUNO:</b> valida campos (vacios y formatos), invoca
+     *       {@link flotabuses.servicios.BusService#crear} y, si la placa ya existe,
+     *       muestra una advertencia. Si la capacidad esta fuera del rango del tipo,
+     *       captura la {@code IllegalArgumentException} y muestra el mensaje del servicio.
+     *       En caso de exito, desactiva controles y regresa a {@code NINGUNO}.</li>
+     * </ul>
+     */
     public void nuevo(){
         switch (tipoOperacion){
             case NINGUNO:
@@ -256,6 +398,17 @@ public class BusController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>GUARDAR → NINGUNO:</b> cancela la creacion en curso y restaura la
+     *       interfaz al estado {@code NINGUNO}.</li>
+     *   <li><b>NINGUNO (default):</b> solicita confirmacion al usuario y, si acepta,
+     *       elimina el bus seleccionado mediante
+     *       {@link flotabuses.servicios.BusService#eliminar}.
+     *       Si no hay ningun bus seleccionado, muestra una advertencia.</li>
+     * </ul>
+     */
     public void eliminar(){
         switch(tipoOperacion) {
             case GUARDAR:
@@ -298,6 +451,19 @@ public class BusController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → ACTUALIZAR:</b> verifica que haya un bus seleccionado,
+     *       activa controles y bloquea {@code txtPlaca} y {@code cmbTipo} (no se
+     *       pueden cambiar al editar), fuerza la revalidacion de campos y avanza
+     *       el estado a {@code ACTUALIZAR}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> valida campos, invoca
+     *       {@link flotabuses.servicios.BusService#actualizar} y, en caso de
+     *       {@code IllegalArgumentException} por capacidad fuera de rango, muestra
+     *       la alerta correspondiente. En caso de exito, restaura la interfaz.</li>
+     * </ul>
+     */
     public void editar() {
         switch(tipoOperacion){
             case NINGUNO:
@@ -376,6 +542,16 @@ public class BusController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO:</b> muestra dos dialogos encadenados para elegir el formato
+     *       (PDF o HTML) y el orden (Ascendente o Descendente por placa).
+     *       Delega la generacion en {@link flotabuses.servicios.ReporteService}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> cancela la edicion en curso y restaura
+     *       la interfaz al estado {@code NINGUNO}.</li>
+     * </ul>
+     */
     public void reporte() {
         switch (tipoOperacion) {
             case NINGUNO:
@@ -424,6 +600,12 @@ public class BusController implements Initializable{
         }
     }
 
+    /**
+     * Muestra un dialogo de confirmacion para elegir entre importar o exportar
+     * la flotilla de buses en formato CSV.
+     * Delega en {@link #importarCSV()} o {@link #exportarCSV()} segun la eleccion.
+     * Solo visible para usuarios con rol {@code ADMIN}.
+     */
     public void CSV() {
         ButtonType btnImp = new ButtonType("Importar");
         ButtonType btnExp = new ButtonType("Exportar");
@@ -439,6 +621,15 @@ public class BusController implements Initializable{
         else if (res.get() == btnExp) exportarCSV();
     }
 
+    /**
+     * Abre un selector de archivo para elegir un CSV de buses y lo importa
+     * fila por fila a la lista doblemente enlazada. El formato esperado es:
+     * {@code Placa,Tipo,Capacidad,Color,Estado,Descripcion}.
+     * Valida el tipo ({@code MICROBUS/COUNTY/PULLMAN}), el estado
+     * ({@code DISPONIBLE/NO_DISPONIBLE}) y la capacidad segun el rango del tipo.
+     * Al finalizar muestra un resumen con la cantidad de registros importados y
+     * los errores detallados.
+     */
     private void importarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Seleccionar FlotillaBuses.csv");
@@ -552,6 +743,12 @@ public class BusController implements Initializable{
         cargarDatos();
     }
 
+    /**
+     * Abre un selector de archivo para guardar los buses actuales en un CSV
+     * con BOM UTF-8 para compatibilidad con Excel. El encabezado y cada fila
+     * siguen el formato: {@code Placa,Tipo,Capacidad,Color,Estado,Descripcion}.
+     * Los buses se exportan en el orden de la lista doblemente enlazada (A-Z por placa).
+     */
     private void exportarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Guardar FlotillaBuses.csv");
@@ -578,6 +775,13 @@ public class BusController implements Initializable{
         }
     }
     
+    /**
+     * Muestra un dialogo de alerta modal con el tipo, titulo y mensaje indicados.
+     *
+     * @param tipo    tipo de alerta ({@code WARNING}, {@code ERROR}, {@code INFORMATION})
+     * @param titulo  texto del titulo de la ventana
+     * @param mensaje contenido del cuerpo del dialogo
+     */
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
         Alert alert = new Alert(tipo);
         alert.setTitle(titulo);
@@ -586,6 +790,11 @@ public class BusController implements Initializable{
         alert.showAndWait();
     }
     
+    /**
+     * Copia los datos del bus seleccionado en la tabla hacia los controles
+     * del formulario. Se invoca desde el evento {@code onMouseClicked}
+     * de la tabla en el FXML.
+     */
     public void seleccionarElemento(){
         Bus seleccionado = tblBuses.getSelectionModel().getSelectedItem();
         if (seleccionado != null) {
@@ -598,6 +807,10 @@ public class BusController implements Initializable{
         }
     }
     
+    /**
+     * Pone todos los controles del formulario en modo solo lectura / deshabilitado.
+     * Se llama al volver al estado {@code NINGUNO}.
+     */
     public void desactivarControles(){
         txtPlaca.setEditable(false);
         cmbTipo.setDisable(true);
@@ -607,6 +820,11 @@ public class BusController implements Initializable{
         txtDescripcion.setEditable(false);
     }
     
+    /**
+     * Habilita todos los controles del formulario para edicion.
+     * Se llama al iniciar una operacion de creacion.
+     * En edicion, {@code editar()} bloquea placa y tipo despues de activar.
+     */
     public void activarControles() {
         txtPlaca.setEditable(true);
         cmbTipo.setDisable(false);
@@ -616,6 +834,10 @@ public class BusController implements Initializable{
         txtDescripcion.setEditable(true);
     }
     
+    /**
+     * Vacia todos los campos de texto, resetea los ComboBox, limpia la
+     * seleccion de la tabla y resetea los iconos Canvas y estilos CSS de validacion.
+     */
     public void limpiarControles() {
         txtPlaca.clear();
         cmbTipo.getSelectionModel().clearSelection();

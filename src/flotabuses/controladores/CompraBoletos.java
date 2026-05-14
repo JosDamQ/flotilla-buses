@@ -42,50 +42,146 @@ import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 
 /**
- * Controlador del módulo de compra de boletos (M5).
- * Permite crear y eliminar boletos vinculando cliente, asignación y hora.
+ * Controlador del modulo de compra de boletos (M5).
+ *
+ * <p>Implementa el patron MVC: gestiona la pantalla {@code compraBoletos.fxml} y
+ * delega la persistencia a {@link flotabuses.servicios.BoletoService}.</p>
+ *
+ * <p>Flujo de la maquina de estados (sin edicion: boletos no se modifican):</p>
+ * <pre>
+ *   NINGUNO  --(nuevo())--> GUARDAR  --(nuevo())--> NINGUNO   (boleto emitido)
+ *   GUARDAR  --(eliminar())--> NINGUNO  (cancelar)
+ *   NINGUNO  --(eliminar())--> confirmacion --> NINGUNO  (boleto eliminado)
+ * </pre>
+ *
+ * <p>El ComboBox {@code cmbAsignacion} muestra todas las asignaciones disponibles
+ * en la matriz ortogonal con formato {@code "Destino → Placa | dd/MM/yyyy"}.
+ * Al seleccionar una asignacion, {@link #onAsignacionSeleccionada()} carga
+ * automaticamente las horas disponibles en {@code cmbHora}.</p>
+ *
+ * <p>Solo los usuarios con rol {@code ADMIN} pueden usar el boton CSV.</p>
+ *
+ * @author damiangarcia
+ * @version 1.0
+ * @see flotabuses.servicios.BoletoService
+ * @see flotabuses.modelos.Boleto
+ * @see flotabuses.modelos.AsignacionBusDestino
+ * @see flotabuses.enums.Operaciones
  */
 public class CompraBoletos implements Initializable {
 
+    /** Referencia a la aplicacion principal para la navegacion entre escenas. */
     private FlotaBuses escenarioPrincipal;
+
+    /**
+     * Estado actual de la maquina de estados CRUD.
+     * Solo admite NINGUNO y GUARDAR (no existe edicion de boletos).
+     */
     private Operaciones tipoOperacion = Operaciones.NINGUNO;
 
+    /** Servicio Singleton que gestiona la lista doblemente enlazada de boletos. */
     private final BoletoService               boletoServicio     = BoletoService.getInstance();
+
+    /** Servicio Singleton utilizado para recorrer la matriz ortogonal de asignaciones. */
     private final AsignacionBusDestinoService asignacionServicio = AsignacionBusDestinoService.getInstance();
+
+    /** Servicio Singleton utilizado para poblar el ComboBox de clientes. */
     private final ClienteService              clienteServicio    = ClienteService.getInstance();
 
+    /** Boton dual: "Nuevo" en estado NINGUNO / "Guardar" en estado GUARDAR. */
     @FXML private Button    btnNuevo;
+
+    /** Boton dual: "Eliminar" en estado NINGUNO / "Cancelar" en estado GUARDAR. */
     @FXML private Button    btnEliminar;
+
+    /** Boton para generar el reporte de boletos (PDF o HTML). */
     @FXML private Button    btnReporte;
+
+    /** Boton para importar/exportar boletos CSV. Solo visible para el rol ADMIN. */
     @FXML private Button    btnCSV;
+
+    /** Icono del boton Nuevo; cambia entre Agregar.png y Save.png. */
     @FXML private ImageView imgNuevo;
+
+    /** Icono del boton Eliminar; cambia entre Quitar.png y Cancel.png. */
     @FXML private ImageView imgEliminar;
 
+    /**
+     * ComboBox con todas las asignaciones de la matriz ortogonal.
+     * El texto se formatea como {@code "Destino → Placa | dd/MM/yyyy"}
+     * mediante un {@code StringConverter} configurado en {@link #configurarComboBoxes()}.
+     */
     @FXML private ComboBox<AsignacionBusDestino> cmbAsignacion;
+
+    /**
+     * ComboBox con las horas disponibles de la asignacion seleccionada.
+     * Se carga dinamicamente en {@link #onAsignacionSeleccionada()}.
+     */
     @FXML private ComboBox<String>               cmbHora;
+
+    /**
+     * ComboBox con todos los clientes registrados.
+     * El texto se formatea como {@code "Código - Nombre Completo"}.
+     */
     @FXML private ComboBox<Cliente>              cmbCliente;
 
+    /** Tabla que muestra todos los boletos emitidos. */
     @FXML private TableView<Boleto>                      tblBoletos;
+
+    /** Columna del codigo unico del boleto. */
     @FXML private TableColumn<Boleto, Integer>           colCodBoleto;
+
+    /** Columna con el nombre completo del cliente. */
     @FXML private TableColumn<Boleto, String>            colCliente;
+
+    /** Columna con el nombre del destino del boleto. */
     @FXML private TableColumn<Boleto, String>            colDestino;
+
+    /** Columna con la fecha de salida del destino asignado. */
     @FXML private TableColumn<Boleto, String>            colFechaSalida;
+
+    /** Columna con la placa del bus asignado. */
     @FXML private TableColumn<Boleto, String>            colBus;
+
+    /** Columna con el tipo de bus (MICROBUS, COUNTY, PULLMAN). */
     @FXML private TableColumn<Boleto, String>            colTipoBus;
+
+    /** Columna con la hora seleccionada para el boleto. */
     @FXML private TableColumn<Boleto, String>            colHora;
+
+    /** Columna con el costo del boleto heredado del destino ({@link flotabuses.modelos.Destino#getCostoBoleto()}). */
     @FXML private TableColumn<Boleto, Double>            colCosto;
 
+    /**
+     * Inicializa el controlador tras cargar el FXML.
+     * Configura los {@code StringConverter} y los items de los ComboBox,
+     * y carga los datos iniciales en la tabla.
+     *
+     * @param location  URL del archivo FXML (no utilizado)
+     * @param resources paquete de recursos de internacionalizacion (no utilizado)
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         configurarComboBoxes();
         cargarDatos();
     }
 
+    /**
+     * Retorna la instancia principal de la aplicacion.
+     *
+     * @return referencia a {@link FlotaBuses}
+     */
     public FlotaBuses getEscenarioPrincipal() { return escenarioPrincipal; }
 
+    /**
+     * Inyecta la instancia principal de la aplicacion y aplica restricciones
+     * de visibilidad segun el rol del usuario autenticado.
+     * Si el usuario tiene rol {@code OPERADOR}, oculta y descarta el boton CSV.
+     *
+     * @param escenarioPrincipal instancia principal de la aplicacion
+     */
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
-        // Ocultar botón CSV para Operadores
         if (escenarioPrincipal.getUsuarioActual() != null
                 && escenarioPrincipal.getUsuarioActual().esOperador()) {
             btnCSV.setVisible(false);
@@ -93,6 +189,10 @@ public class CompraBoletos implements Initializable {
         }
     }
 
+    /**
+     * Navega de regreso al menu principal invocando
+     * {@link FlotaBuses#menuPrincipal()}.
+     */
     public void menuPrincipal() {
         escenarioPrincipal.menuPrincipal();
     }
@@ -101,6 +201,12 @@ public class CompraBoletos implements Initializable {
     // CONFIGURACIÓN INICIAL
     // =========================================================
 
+    /**
+     * Configura los {@code StringConverter} de los ComboBox de asignaciones y
+     * clientes, y carga sus items iniciales.
+     * La asignacion se muestra como {@code "Destino → Placa | dd/MM/yyyy"}.
+     * El cliente se muestra como {@code "Código - Nombre Completo"}.
+     */
     private void configurarComboBoxes() {
         // AsignacionBusDestino: mostrar "Destino → Placa"
         cmbAsignacion.setConverter(new StringConverter<AsignacionBusDestino>() {
@@ -168,6 +274,12 @@ public class CompraBoletos implements Initializable {
     // CARGAR DATOS
     // =========================================================
 
+    /**
+     * Carga todos los boletos del servicio en la tabla y configura las factorys
+     * de celdas mediante lambdas {@code SimpleStringProperty} y
+     * {@code SimpleDoubleProperty} para los campos calculados.
+     * Se llama al inicializar y despues de cada operacion exitosa.
+     */
     public void cargarDatos() {
         tblBoletos.setItems(boletoServicio.obtenerTodos());
         colCodBoleto.setCellValueFactory(new PropertyValueFactory<>("codigoBoleto"));
@@ -194,6 +306,18 @@ public class CompraBoletos implements Initializable {
     // NUEVO / GUARDAR
     // =========================================================
 
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → GUARDAR:</b> limpia y activa controles, recarga los combos
+     *       con los datos actuales, cambia etiquetas e iconos y avanza a {@code GUARDAR}.</li>
+     *   <li><b>GUARDAR → NINGUNO:</b> valida que asignacion, hora y cliente esten
+     *       seleccionados, construye un {@code LocalTime} a partir de la cadena de hora
+     *       y llama a {@link flotabuses.servicios.BoletoService#crear}.
+     *       Interpreta: {@code 1} = hora no disponible, {@code 2} = bus lleno.
+     *       En caso de exito regresa a {@code NINGUNO}.</li>
+     * </ul>
+     */
     @FXML
     public void nuevo() {
         switch (tipoOperacion) {
@@ -257,6 +381,16 @@ public class CompraBoletos implements Initializable {
     // ELIMINAR / CANCELAR
     // =========================================================
 
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>GUARDAR → NINGUNO:</b> cancela la creacion del boleto en curso.</li>
+     *   <li><b>NINGUNO (default):</b> solicita confirmacion al usuario y, si acepta,
+     *       elimina el boleto seleccionado mediante
+     *       {@link flotabuses.servicios.BoletoService#eliminar}.
+     *       Si no hay ningun boleto seleccionado, muestra una advertencia.</li>
+     * </ul>
+     */
     @FXML
     public void eliminar() {
         switch (tipoOperacion) {
@@ -297,6 +431,10 @@ public class CompraBoletos implements Initializable {
     // REPORTE
     // =========================================================
 
+    /**
+     * Muestra un dialogo para elegir el formato (PDF o HTML) del reporte de boletos
+     * y delega la generacion en {@link flotabuses.servicios.ReporteService}.
+     */
     @FXML
     public void reporte() {
         ButtonType btnPdf  = new ButtonType("PDF");
@@ -318,6 +456,12 @@ public class CompraBoletos implements Initializable {
     // CSV
     // =========================================================
 
+    /**
+     * Muestra un dialogo de confirmacion para elegir entre importar o exportar
+     * boletos en formato CSV. Delega en {@link #importarCSV()} o
+     * {@link #exportarCSV()} segun la eleccion.
+     * Solo visible para usuarios con rol {@code ADMIN}.
+     */
     @FXML
     public void CSV() {
         ButtonType btnImport  = new ButtonType("Importar");
@@ -334,6 +478,14 @@ public class CompraBoletos implements Initializable {
         else if (res.get() == btnExport) exportarCSV();
     }
 
+    /**
+     * Abre un selector de archivo para elegir un CSV de boletos y lo importa
+     * fila por fila. El formato esperado es:
+     * {@code CodBoleto,Hora,CodDest,NomDest,Fecha,Placa,Tipo,CodCliente,NomCliente,Costo}.
+     * Valida que el bus exista por placa, que el destino exista por nombre, que el
+     * cliente exista por codigo y que exista la asignacion bus-destino en la matriz.
+     * Al finalizar muestra un resumen con importados y errores detallados.
+     */
     private void importarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Seleccionar Ticket.csv");
@@ -466,6 +618,13 @@ public class CompraBoletos implements Initializable {
         cargarDatos();
     }
 
+    /**
+     * Abre un selector de archivo para guardar los boletos actuales en un CSV
+     * con BOM UTF-8. El encabezado es:
+     * {@code Código_boleto,Hora_seleccionada,Código_destino,Nombre_destino,
+     * Fecha_salida_destino_asignado,Placa_bus,Tipo_bus,Código_cliente,Nombre_cliente,Costo_generado}.
+     * Los boletos se exportan en el orden de la lista doblemente enlazada.
+     */
     private void exportarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Guardar Ticket.csv");
@@ -506,6 +665,11 @@ public class CompraBoletos implements Initializable {
     // AUXILIARES
     // =========================================================
 
+    /**
+     * Metodo invocado desde el evento {@code onMouseClicked} de la tabla.
+     * En este modulo los boletos no se editan, por lo que el metodo no
+     * realiza ninguna accion (solo visualizacion).
+     */
     @FXML
     public void seleccionarElemento() {
         // Solo permite visualizar; no se llena el form para edición inline

@@ -52,67 +52,172 @@ import java.time.format.DateTimeFormatter;
 import javafx.scene.control.DateCell;
 
 /**
+ * Controlador del modulo de gestion de destinos turisticos (M3).
+ *
+ * <p>Implementa el patron MVC: gestiona la pantalla {@code destinoView.fxml} y
+ * delega la persistencia a {@link flotabuses.servicios.DestinoService}.</p>
+ *
+ * <p>Opera con la misma maquina de estados que los demas modulos:</p>
+ * <pre>
+ *   NINGUNO  --(nuevo())--> GUARDAR  --(nuevo())--> NINGUNO   (creado)
+ *   NINGUNO  --(editar())--> ACTUALIZAR  --(editar())--> NINGUNO   (actualizado)
+ *   NINGUNO  --(eliminar())--> confirmacion --> NINGUNO  (eliminado)
+ *   GUARDAR | ACTUALIZAR --(eliminar()/reporte())--> NINGUNO  (cancelar)
+ * </pre>
+ *
+ * <p>Particularidades de este modulo:</p>
+ * <ul>
+ *   <li>El nombre del destino ({@link flotabuses.enums.NombreDestino}) se selecciona
+ *       desde un {@code ComboBox} cerrado (catalogo fijo de 15 destinos guatemaltecos)
+ *       y actua como clave unica; no puede modificarse en edicion.</li>
+ *   <li>La fecha de salida se ingresa con un {@code DatePicker} que deshabilita
+ *       fechas pasadas mediante un {@code DayCellFactory}.</li>
+ *   <li>Solo los destinos con estado {@code CONFIRMADO} aparecen disponibles en
+ *       el modulo de asignaciones y boletos.</li>
+ *   <li>Solo se valida con icono Canvas el campo costo.</li>
+ * </ul>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see flotabuses.servicios.DestinoService
+ * @see flotabuses.modelos.Destino
+ * @see flotabuses.enums.NombreDestino
+ * @see flotabuses.enums.EstadoDestino
+ * @see flotabuses.enums.Operaciones
  */
 public class DestinoController implements Initializable{
+
+    /** Referencia a la aplicacion principal para la navegacion entre escenas. */
     private FlotaBuses escenarioPrincipal;
+
+    /**
+     * Estado actual de la maquina de estados CRUD.
+     * Controla el comportamiento de los botones Nuevo, Eliminar, Editar y Reporte.
+     */
     private Operaciones tipoOperacion = Operaciones.NINGUNO;
-    
+
+    /** Servicio Singleton que gestiona la lista doblemente enlazada de destinos. */
     private DestinoService destinoService = DestinoService.getInstance();
             
+    /** Boton para importar/exportar CSV. Solo visible para el rol ADMIN. */
     @FXML
     private Button btnCSV;
+
+    /** Boton dual: "Editar" en estado NINGUNO / "Actualizar" en estado ACTUALIZAR. */
     @FXML
     private Button btnEditar;
+
+    /** Boton dual: "Eliminar" en estado NINGUNO / "Cancelar" en estado GUARDAR. */
     @FXML
     private Button btnEliminar;
+
+    /** Boton dual: "Nuevo" en estado NINGUNO / "Guardar" en estado GUARDAR. */
     @FXML
     private Button btnNuevo;
+
+    /** Boton dual: "Reporte" en estado NINGUNO / "Cancelar" en estado ACTUALIZAR. */
     @FXML
     private Button btnReporte;
+
+    /** ComboBox con los estados del destino (CONFIRMADO / PENDIENTE). */
     @FXML
     private ComboBox<EstadoDestino> cmbEstado;
+
+    /**
+     * ComboBox con el catalogo fijo de 15 destinos guatemaltecos.
+     * Actua como clave unica y se bloquea en modo edicion.
+     */
     @FXML
     private ComboBox<NombreDestino> cmbNombre;
+
+    /** Columna del codigo interno del destino. */
     @FXML
     private TableColumn<Destino, Integer> colCodigoDestino;
+
+    /** Columna del costo del boleto en quetzales. */
     @FXML
     private TableColumn<Destino, Double> colCostoBoleto;
+
+    /** Columna de la descripcion libre del destino. */
     @FXML
     private TableColumn<Destino, String> colDescripcion;
+
+    /** Columna del estado del destino (CONFIRMADO / PENDIENTE). */
     @FXML
     private TableColumn<Destino, String> colEstado;
+
+    /** Columna de la fecha programada de salida. */
     @FXML
     private TableColumn<Destino, LocalDate> colFechaSalida;
+
+    /** Columna del nombre del destino. */
     @FXML
     private TableColumn<Destino, String> colNombre;
+
+    /**
+     * Selector de fecha para la salida del destino.
+     * Las fechas anteriores al dia actual se deshabilitan mediante un
+     * {@code DayCellFactory} configurado en {@link #initialize}.
+     */
     @FXML
     private DatePicker dtpFechaSalida;
+
+    /** Icono del boton CSV. */
     @FXML
     private ImageView imgCSV;
+
+    /** Icono del boton Editar; cambia entre Edit.png y Save.png. */
     @FXML
     private ImageView imgEditar;
+
+    /** Icono del boton Eliminar; cambia entre Quitar.png y Cancel.png. */
     @FXML
     private ImageView imgEliminar;
+
+    /** Icono del boton Nuevo; cambia entre Agregar.png y Save.png. */
     @FXML
     private ImageView imgNuevo;
+
+    /** Icono del boton Reporte; cambia entre Reporte.png y Cancel.png. */
     @FXML
     private ImageView imgReporte;
+
+    /** Tabla que muestra todos los destinos registrados ordenados por nombre. */
     @FXML
     private TableView<Destino> tblDestinos;
+
+    /** Campo de texto de solo lectura para el codigo del destino (generado automaticamente). */
     @FXML
     private TextField txtCodigoDestino;
+
+    /**
+     * Campo de texto para el costo del boleto en quetzales.
+     * TextFormatter restringe a hasta 8 digitos con hasta 2 decimales.
+     */
     @FXML
     private TextField txtCostoBoleto;
+
+    /** Campo de texto para la descripcion libre del destino. */
     @FXML
     private TextField txtDescripcion;
+
+    /** Contenedor GridPane donde se inyecta el icono de validacion Canvas. */
     @FXML
     private GridPane gridDatos;
 
     // ── Icono de validación (Canvas) ─────────────────────
+    /** Icono Canvas que indica validez del campo costo en tiempo real. */
     private IconoValidacion icoCosto;
 
+    /**
+     * Inicializa el controlador tras cargar el FXML.
+     * Carga los valores de los ComboBox, aplica el {@code DayCellFactory} al
+     * {@code DatePicker} para deshabilitar fechas pasadas, configura el
+     * {@code TextFormatter} del costo e inyecta el icono Canvas de validacion.
+     *
+     * @param location  URL del archivo FXML (no utilizado)
+     * @param resources paquete de recursos de internacionalizacion (no utilizado)
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         cmbNombre.setItems(FXCollections.observableArrayList(NombreDestino.values()));
@@ -146,10 +251,22 @@ public class DestinoController implements Initializable{
         cargarDatos();
     }
     
+    /**
+     * Retorna la instancia principal de la aplicacion.
+     *
+     * @return referencia a {@link FlotaBuses}
+     */
     public FlotaBuses getEscenarioPrincipal() {
         return escenarioPrincipal;
     }
-    
+
+    /**
+     * Inyecta la instancia principal de la aplicacion y aplica restricciones
+     * de visibilidad segun el rol del usuario autenticado.
+     * Si el usuario tiene rol {@code OPERADOR}, oculta y descarta el boton CSV.
+     *
+     * @param escenarioPrincipal instancia principal de la aplicacion
+     */
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         flotabuses.modelos.Usuario u = escenarioPrincipal.getUsuarioActual();
@@ -158,11 +275,20 @@ public class DestinoController implements Initializable{
             btnCSV.setManaged(false);
         }
     }
-    
+
+    /**
+     * Navega de regreso al menu principal invocando
+     * {@link FlotaBuses#menuPrincipal()}.
+     */
     public void menuPrincipal(){
         escenarioPrincipal.menuPrincipal();
     }
-    
+
+    /**
+     * Carga todos los destinos del servicio en la tabla y configura las
+     * {@code PropertyValueFactory} de cada columna.
+     * Se llama al inicializar y despues de cada operacion CRUD exitosa.
+     */
     public void cargarDatos(){
         tblDestinos.setItems(destinoService.obtenerTodos());
         colCodigoDestino.setCellValueFactory(new PropertyValueFactory<>("codigoDestino"));
@@ -173,6 +299,17 @@ public class DestinoController implements Initializable{
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → GUARDAR:</b> limpia y activa controles, cambia etiquetas e
+     *       iconos y avanza el estado a {@code GUARDAR}.</li>
+     *   <li><b>GUARDAR → NINGUNO:</b> valida que todos los campos esten completos,
+     *       parsea el costo y llama a {@link flotabuses.servicios.DestinoService#crear}.
+     *       Muestra alerta si el destino ya existe ({@code false}). En caso de exito,
+     *       desactiva controles y regresa a {@code NINGUNO}.</li>
+     * </ul>
+     */
     public void nuevo(){
         switch (tipoOperacion) {
             case NINGUNO:
@@ -247,6 +384,17 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>GUARDAR → NINGUNO:</b> cancela la creacion en curso y restaura la
+     *       interfaz al estado {@code NINGUNO}.</li>
+     *   <li><b>NINGUNO (default):</b> solicita confirmacion al usuario y, si acepta,
+     *       elimina el destino seleccionado mediante
+     *       {@link flotabuses.servicios.DestinoService#eliminar}.
+     *       Si no hay ningun destino seleccionado, muestra una advertencia.</li>
+     * </ul>
+     */
     public void eliminar(){
         switch (tipoOperacion) {
             case GUARDAR:
@@ -289,6 +437,17 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → ACTUALIZAR:</b> verifica que haya un destino seleccionado,
+     *       activa controles, bloquea {@code cmbNombre} (la clave no puede cambiar)
+     *       y avanza el estado a {@code ACTUALIZAR}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> valida campos, invoca
+     *       {@link flotabuses.servicios.DestinoService#actualizar} y, en caso de
+     *       exito, restaura la interfaz y regresa a {@code NINGUNO}.</li>
+     * </ul>
+     */
     public void editar() {
         switch(tipoOperacion) {
             case NINGUNO:
@@ -365,6 +524,15 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO:</b> muestra dos dialogos encadenados para elegir formato
+     *       (PDF o HTML) y orden (Ascendente o Descendente).
+     *       Delega en {@link flotabuses.servicios.ReporteService}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> cancela la edicion en curso.</li>
+     * </ul>
+     */
     public void reporte() {
         switch(tipoOperacion) {
             case NINGUNO:
@@ -412,6 +580,12 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Muestra un dialogo de confirmacion para elegir entre importar o exportar
+     * destinos en formato CSV. Delega en {@link #importarCSV()} o
+     * {@link #exportarCSV()} segun la eleccion.
+     * Solo visible para usuarios con rol {@code ADMIN}.
+     */
     public void CSV() {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("CSV - Destinos");
@@ -427,6 +601,15 @@ public class DestinoController implements Initializable{
         }
     }
 
+    /**
+     * Abre un selector de archivo para elegir un CSV de destinos y lo importa
+     * fila por fila. El formato esperado es:
+     * {@code Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción}.
+     * La fecha debe tener formato {@code dd/MM/yyyy}; el estado debe ser
+     * {@code CONFIRMADO} o {@code PENDIENTE}; el nombre debe coincidir
+     * exactamente con uno de los valores del enum {@link flotabuses.enums.NombreDestino}.
+     * Al finalizar muestra un resumen con importados y errores detallados.
+     */
     private void importarCSV() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Importar Destinos CSV");
@@ -546,6 +729,13 @@ public class DestinoController implements Initializable{
         mostrarAlerta(Alert.AlertType.INFORMATION, "Importacion completa", msg);
     }
 
+    /**
+     * Abre un selector de archivo para guardar los destinos actuales en un CSV
+     * con BOM UTF-8. El encabezado es:
+     * {@code Código,Nombre_Destino,Fecha_salida,Costo_persona,Estado,Descripción}.
+     * Las fechas se formatean como {@code dd/MM/yyyy} y los destinos se exportan
+     * en el orden de la lista doblemente enlazada (A-Z por nombre).
+     */
     private void exportarCSV() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Exportar Destinos CSV");
@@ -580,6 +770,13 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Muestra un dialogo de alerta modal con el tipo, titulo y mensaje indicados.
+     *
+     * @param tipo    tipo de alerta ({@code WARNING}, {@code ERROR}, {@code INFORMATION})
+     * @param titulo  texto del titulo de la ventana
+     * @param mensaje contenido del cuerpo del dialogo
+     */
     public void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
         Alert alert = new Alert(tipo);
         alert.setTitle(titulo);
@@ -587,7 +784,11 @@ public class DestinoController implements Initializable{
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
-    
+
+    /**
+     * Copia los datos del destino seleccionado en la tabla hacia los controles
+     * del formulario. Se invoca desde el evento {@code onMouseClicked} de la tabla.
+     */
     public void seleccionarElemento() {
         Destino seleccionado = tblDestinos.getSelectionModel().getSelectedItem();
         if (seleccionado != null) {
@@ -600,6 +801,10 @@ public class DestinoController implements Initializable{
         }
     }
     
+    /**
+     * Pone todos los controles del formulario en modo solo lectura / deshabilitado.
+     * Se llama al volver al estado {@code NINGUNO}.
+     */
     public void desactivarControles() {
         //txtCodigoDestino.setEditable(false);
         cmbNombre.setDisable(true);
@@ -609,6 +814,11 @@ public class DestinoController implements Initializable{
         txtDescripcion.setEditable(false);
     }
     
+    /**
+     * Habilita todos los controles del formulario para edicion.
+     * En modo actualizacion, {@code editar()} bloquea el {@code cmbNombre}
+     * inmediatamente despues de activar.
+     */
     public void activarControles() {
         //txtCodigoDestino.setEditable(true);
         cmbNombre.setDisable(false);
@@ -618,6 +828,10 @@ public class DestinoController implements Initializable{
         txtDescripcion.setEditable(true);
     }
     
+    /**
+     * Vacia todos los controles del formulario, limpia la seleccion de la tabla
+     * y resetea el icono Canvas y el estilo CSS del campo costo.
+     */
     public void limpiarControles() {
         //txtCodigoDestino.clear();
         cmbNombre.getSelectionModel().clearSelection();

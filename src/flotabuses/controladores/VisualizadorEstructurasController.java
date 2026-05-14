@@ -54,31 +54,61 @@ import javafx.scene.text.TextAlignment;
  */
 public class VisualizadorEstructurasController implements Initializable {
 
+    /** Canvas del tab 1 donde se dibuja el arbol binario de busqueda de clientes. */
     @FXML private Canvas canvasArbol;
+
+    /** Canvas del tab 2 donde se dibuja la lista doblemente enlazada de buses. */
     @FXML private Canvas canvasLista;
+
+    /** Canvas del tab 3 donde se dibuja la matriz ortogonal de asignaciones. */
     @FXML private Canvas canvasMatriz;
 
+    /** Referencia a la aplicacion principal para la navegacion entre escenas. */
     private FlotaBuses escenarioPrincipal;
 
-    // Constantes de layout para el Arbol Binario
+    /** Radio en pixeles de cada nodo circular del arbol binario. */
     private static final int RADIO_NODO  = 28;
+
+    /** Separacion horizontal en pixeles entre nodos del arbol (recorrido in-orden). */
     private static final int X_STEP_ABB  = 80;
+
+    /** Separacion vertical en pixeles entre niveles del arbol. */
     private static final int Y_STEP_ABB  = 90;
 
-    // Constantes de layout para la Lista
+    /** Ancho en pixeles de cada nodo rectangular de la lista doblemente enlazada. */
     private static final double NODO_W  = 145;
+
+    /** Alto en pixeles de cada nodo rectangular de la lista doblemente enlazada. */
     private static final double NODO_H  = 65;
+
+    /** Espacio horizontal en pixeles entre nodos consecutivos de la lista. */
     private static final double GAP     = 55;
 
-    // Constantes de layout para la Matriz
+    /** Ancho en pixeles de las cabeceras de fila (destinos) de la matriz. */
     private static final double HEADER_W = 185;
+
+    /** Alto en pixeles de las cabeceras de columna (buses) de la matriz. */
     private static final double HEADER_H = 75;
+
+    /** Ancho en pixeles de cada celda de datos de la matriz. */
     private static final double CELL_W   = 130;
+
+    /** Alto en pixeles de cada celda de datos de la matriz. */
     private static final double CELL_H   = 75;
 
-    // Contador de posicion in-orden reutilizado en cada redibujado del arbol
+    /**
+     * Contador de posicion en el recorrido in-orden del arbol.
+     * Se reinicia en cero al inicio de cada llamada a {@link #dibujarArbol()}.
+     */
     private int xCounter;
 
+    /**
+     * Inicializa el controlador dibujando las tres estructuras con los datos
+     * actuales de los servicios al momento de cargar la pantalla.
+     *
+     * @param url URL del archivo FXML (no utilizado)
+     * @param rb  paquete de recursos de internacionalizacion (no utilizado)
+     */
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         dibujarArbol();
@@ -86,7 +116,11 @@ public class VisualizadorEstructurasController implements Initializable {
         dibujarMatriz();
     }
 
-    /** @param ep instancia principal de la aplicacion para la navegacion entre escenas */
+    /**
+     * Inyecta la instancia principal de la aplicacion para la navegacion entre escenas.
+     *
+     * @param ep instancia principal de la aplicacion
+     */
     public void setEscenarioPrincipal(FlotaBuses ep) {
         this.escenarioPrincipal = ep;
     }
@@ -161,6 +195,14 @@ public class VisualizadorEstructurasController implements Initializable {
         dibujarNodos(raiz, posiciones, gc);
     }
 
+    /**
+     * Asigna las coordenadas X a cada nodo del arbol mediante recorrido in-orden,
+     * de modo que los nodos queden distribuidos horizontalmente segun su orden de clave.
+     * Utiliza {@link #xCounter} como contador incremental de posicion.
+     *
+     * @param nodo nodo raiz del subarbol a procesar
+     * @param pos  mapa identidad donde se acumulan las posiciones [x, y] por nodo
+     */
     private void asignarX(NodoArbol nodo, IdentityHashMap<NodoArbol, double[]> pos) {
         if (nodo == null) return;
         asignarX(nodo.izq, pos);
@@ -170,6 +212,14 @@ public class VisualizadorEstructurasController implements Initializable {
         asignarX(nodo.der, pos);
     }
 
+    /**
+     * Asigna las coordenadas Y a cada nodo del arbol segun su profundidad (nivel),
+     * de modo que cada nivel del arbol ocupa una fila horizontal distinta.
+     *
+     * @param nodo  nodo raiz del subarbol a procesar
+     * @param nivel profundidad actual (0 = raiz)
+     * @param pos   mapa identidad donde se acumulan las posiciones [x, y] por nodo
+     */
     private void asignarY(NodoArbol nodo, int nivel, IdentityHashMap<NodoArbol, double[]> pos) {
         if (nodo == null) return;
         double[] xy = pos.computeIfAbsent(nodo, k -> new double[2]);
@@ -178,6 +228,13 @@ public class VisualizadorEstructurasController implements Initializable {
         asignarY(nodo.der, nivel + 1, pos);
     }
 
+    /**
+     * Dibuja recursivamente las aristas (lineas) entre cada nodo padre y sus hijos.
+     *
+     * @param nodo nodo actual desde el que se dibujan las aristas a sus hijos
+     * @param pos  mapa identidad con las posiciones [x, y] calculadas previamente
+     * @param gc   contexto grafico del canvas del arbol
+     */
     private void dibujarAristas(NodoArbol nodo,
                                 IdentityHashMap<NodoArbol, double[]> pos,
                                 GraphicsContext gc) {
@@ -195,6 +252,14 @@ public class VisualizadorEstructurasController implements Initializable {
         }
     }
 
+    /**
+     * Dibuja recursivamente cada nodo del arbol como un circulo azul con el
+     * codigo y nombre del cliente en texto blanco.
+     *
+     * @param nodo nodo actual a dibujar
+     * @param pos  mapa identidad con las posiciones [x, y] calculadas previamente
+     * @param gc   contexto grafico del canvas del arbol
+     */
     private void dibujarNodos(NodoArbol nodo,
                               IdentityHashMap<NodoArbol, double[]> pos,
                               GraphicsContext gc) {
@@ -320,6 +385,16 @@ public class VisualizadorEstructurasController implements Initializable {
         gc.fillText("Flecha superior -> siguiente  |  Flecha inferior <- anterior", startX, nodeY + NODO_H + 25);
     }
 
+    /**
+     * Dibuja un rectangulo gris con la etiqueta {@code "null"} para representar
+     * los centinelas de inicio y fin de la lista doblemente enlazada.
+     *
+     * @param gc contexto grafico del canvas de la lista
+     * @param x  coordenada X de la esquina superior izquierda del rectangulo
+     * @param y  coordenada Y de la esquina superior izquierda del rectangulo
+     * @param w  ancho del rectangulo en pixeles
+     * @param h  alto del rectangulo en pixeles
+     */
     private void dibujarNuloCentinela(GraphicsContext gc, double x, double y, double w, double h) {
         gc.setFill(Color.LIGHTGRAY);
         gc.fillRoundRect(x, y, w, h, 8, 8);

@@ -42,54 +42,157 @@ import javafx.scene.layout.Priority;
 import javafx.stage.FileChooser;
 
 /**
+ * Controlador del modulo de gestion de clientes (M1).
+ *
+ * <p>Implementa el patron MVC: gestiona la pantalla {@code clientesView.fxml} y
+ * delega la persistencia a {@link flotabuses.servicios.ClienteService}.</p>
+ *
+ * <p>Opera como una maquina de estados a traves de {@link #tipoOperacion}.
+ * Los flujos CRUD son:</p>
+ * <pre>
+ *   NINGUNO  --(nuevo())--> GUARDAR  --(nuevo())--> NINGUNO   (registro creado)
+ *   NINGUNO  --(editar())--> ACTUALIZAR  --(editar())--> NINGUNO   (registro actualizado)
+ *   NINGUNO  --(eliminar())-->  confirmacion --> NINGUNO  (registro eliminado)
+ *   GUARDAR | ACTUALIZAR --(eliminar()/reporte())--> NINGUNO  (cancelar)
+ * </pre>
+ *
+ * <p>Cada campo de texto cuenta con un {@link IconoValidacion} (Canvas) inyectado
+ * dinamicamente en el {@code GridPane} mediante {@link #envolver(GridPane, TextField)}.
+ * Los listeners de {@link #configurarValidacion} actualizan el icono y el estilo CSS
+ * en tiempo real mientras el usuario escribe.</p>
+ *
+ * <p>El boton CSV solo es visible para el rol {@code ADMIN}; se oculta automaticamente
+ * en {@link #setEscenarioPrincipal(FlotaBuses)} si el usuario es {@code OPERADOR}.</p>
  *
  * @author damiangarcia
+ * @version 1.0
+ * @see flotabuses.servicios.ClienteService
+ * @see flotabuses.modelos.Cliente
+ * @see flotabuses.utils.ValidadorCampos
+ * @see flotabuses.enums.Operaciones
  */
 public class ClienteController implements Initializable {
 
+    /** Referencia a la aplicacion principal para la navegacion entre escenas. */
     private FlotaBuses escenarioPrincipal;
+
+    /**
+     * Estado actual de la maquina de estados CRUD.
+     * Controla el comportamiento de los botones Nuevo, Eliminar, Editar y Reporte.
+     */
     private Operaciones tipoOperacion = Operaciones.NINGUNO;
 
+    /** Servicio Singleton que gestiona el arbol de clientes. */
     private ClienteService clienteServicio = ClienteService.getInstance();
 
     // ── FXML Controles ────────────────────────────────────
+    /** Boton dual: "Nuevo" en estado NINGUNO / "Guardar" en estado GUARDAR. */
     @FXML private Button  btnNuevo;
+
+    /** Boton dual: "Eliminar" en estado NINGUNO / "Cancelar" en estado GUARDAR. */
     @FXML private Button  btnEliminar;
+
+    /** Boton dual: "Editar" en estado NINGUNO / "Actualizar" en estado ACTUALIZAR. */
     @FXML private Button  btnEditar;
+
+    /** Boton dual: "Reporte" en estado NINGUNO / "Cancelar" en estado ACTUALIZAR. */
     @FXML private Button  btnReporte;
+
+    /** Boton para importar/exportar CSV. Solo visible para el rol ADMIN. */
     @FXML private Button  btnCSV;
+
+    /** Icono del boton Nuevo; cambia entre Agregar.png y Save.png segun el estado. */
     @FXML private ImageView imgNuevo;
+
+    /** Icono del boton Eliminar; cambia entre Quitar.png y Cancel.png segun el estado. */
     @FXML private ImageView imgEliminar;
+
+    /** Icono del boton Editar; cambia entre Edit.png y Save.png segun el estado. */
     @FXML private ImageView imgEditar;
+
+    /** Icono del boton Reporte; cambia entre Reporte.png y Cancel.png segun el estado. */
     @FXML private ImageView imgReporte;
+
+    /** Icono del boton CSV. */
     @FXML private ImageView imgCSV;
+
+    /** Tabla que muestra todos los clientes registrados en orden ascendente por codigo. */
     @FXML private TableView<Cliente>            tblClientes;
+
+    /** Columna del codigo de cliente (clave del arbol BST). */
     @FXML private TableColumn<Cliente, Integer> colCodigoCliente;
+
+    /** Columna del nombre de pila del cliente. */
     @FXML private TableColumn<Cliente, String>  colNombre;
+
+    /** Columna del apellido del cliente. */
     @FXML private TableColumn<Cliente, String>  colApellido;
+
+    /** Columna del DPI/CUI del cliente (13 digitos). */
     @FXML private TableColumn<Cliente, String>  colDPI;
+
+    /** Columna del correo electronico del cliente. */
     @FXML private TableColumn<Cliente, String>  colEmail;
+
+    /** Columna de la contrasena del cliente. */
     @FXML private TableColumn<Cliente, String>  colPassword;
+
+    /** Columna del telefono del cliente (8 digitos). */
     @FXML private TableColumn<Cliente, String>  colTelefono;
+
+    /** Campo de texto para el nombre del cliente. Solo letras, tildes y espacios. */
     @FXML private TextField txtNombre;
+
+    /** Campo de texto para el apellido del cliente. Solo letras, tildes y espacios. */
     @FXML private TextField txtApellido;
+
+    /** Campo de texto para el DPI/CUI. TextFormatter restringe a 13 digitos. */
     @FXML private TextField txtDPI;
+
+    /** Campo de texto para el correo electronico del cliente. */
     @FXML private TextField txtEmail;
+
+    /** Campo de texto para la contrasena del cliente (minimo 6 caracteres). */
     @FXML private TextField txtPassword;
+
+    /** Campo de texto para el telefono. TextFormatter restringe a 8 digitos. */
     @FXML private TextField txtTelefono;
+
+    /** Contenedor GridPane donde se inyectan los iconos de validacion Canvas. */
     @FXML private GridPane gridDatos;
 
     // ── Iconos de validación (Canvas) ────────────────────
+    /** Icono Canvas que indica validez del campo nombre en tiempo real. */
     private IconoValidacion icoNombre;
+
+    /** Icono Canvas que indica validez del campo apellido en tiempo real. */
     private IconoValidacion icoApellido;
+
+    /** Icono Canvas que indica validez del campo DPI en tiempo real. */
     private IconoValidacion icoDPI;
+
+    /** Icono Canvas que indica validez del campo email en tiempo real. */
     private IconoValidacion icoEmail;
+
+    /** Icono Canvas que indica validez del campo password en tiempo real. */
     private IconoValidacion icoPassword;
+
+    /** Icono Canvas que indica validez del campo telefono en tiempo real. */
     private IconoValidacion icoTelefono;
 
     // =========================================================
     // INITIALIZE
     // =========================================================
+
+    /**
+     * Inicializa el controlador tras cargar el FXML.
+     * Aplica TextFormatters a los campos numericos, inyecta los iconos Canvas
+     * de validacion en el GridPane, registra los listeners en tiempo real y
+     * carga los datos iniciales en la tabla.
+     *
+     * @param location  URL del archivo FXML (no utilizado)
+     * @param resources paquete de recursos de internacionalizacion (no utilizado)
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Restricciones de entrada (TextFormatter)
@@ -118,8 +221,21 @@ public class ClienteController implements Initializable {
     // =========================================================
     // ESCENARIO PRINCIPAL
     // =========================================================
+
+    /**
+     * Retorna la instancia principal de la aplicacion.
+     *
+     * @return referencia a {@link FlotaBuses}
+     */
     public FlotaBuses getEscenarioPrincipal() { return escenarioPrincipal; }
 
+    /**
+     * Inyecta la instancia principal de la aplicacion y aplica restricciones
+     * de visibilidad segun el rol del usuario autenticado.
+     * Si el usuario tiene rol {@code OPERADOR}, oculta y descarta el boton CSV.
+     *
+     * @param escenarioPrincipal instancia principal de la aplicacion
+     */
     public void setEscenarioPrincipal(FlotaBuses escenarioPrincipal) {
         this.escenarioPrincipal = escenarioPrincipal;
         if (escenarioPrincipal.getUsuarioActual() != null
@@ -129,6 +245,10 @@ public class ClienteController implements Initializable {
         }
     }
 
+    /**
+     * Navega de regreso al menu principal invocando
+     * {@link FlotaBuses#menuPrincipal()}.
+     */
     public void menuPrincipal() {
         escenarioPrincipal.menuPrincipal();
     }
@@ -136,6 +256,12 @@ public class ClienteController implements Initializable {
     // =========================================================
     // CARGAR DATOS
     // =========================================================
+
+    /**
+     * Carga todos los clientes del servicio en la tabla y configura las
+     * {@code PropertyValueFactory} de cada columna.
+     * Se llama al inicializar y despues de cada operacion CRUD exitosa.
+     */
     public void cargarDatos() {
         tblClientes.setItems(clienteServicio.obtenerTodosAscendente());
         colCodigoCliente.setCellValueFactory(new PropertyValueFactory<>("codigoCliente"));
@@ -150,6 +276,19 @@ public class ClienteController implements Initializable {
     // =========================================================
     // NUEVO / GUARDAR
     // =========================================================
+
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → GUARDAR:</b> limpia y activa los controles, cambia etiquetas
+     *       e iconos de los botones y avanza el estado a {@code GUARDAR}.</li>
+     *   <li><b>GUARDAR → NINGUNO:</b> valida todos los campos (vacios y formato
+     *       guatemalteco), invoca {@link flotabuses.servicios.ClienteService#crear} y,
+     *       si el resultado es exitoso ({@code 0}), desactiva controles y regresa a
+     *       {@code NINGUNO}. Muestra alertas si el DPI ({@code 1}) o el email
+     *       ({@code 2}) ya existen.</li>
+     * </ul>
+     */
     public void nuevo() {
         switch (tipoOperacion) {
             case NINGUNO:
@@ -229,6 +368,18 @@ public class ClienteController implements Initializable {
     // =========================================================
     // ELIMINAR / CANCELAR
     // =========================================================
+
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>GUARDAR → NINGUNO:</b> cancela la creacion en curso, restaura
+     *       etiquetas e iconos originales y regresa a {@code NINGUNO}.</li>
+     *   <li><b>NINGUNO (default):</b> solicita confirmacion al usuario y, si acepta,
+     *       elimina el cliente seleccionado en la tabla mediante
+     *       {@link flotabuses.servicios.ClienteService#eliminar}.
+     *       Si no hay ningun elemento seleccionado, muestra una advertencia.</li>
+     * </ul>
+     */
     public void eliminar() {
         switch (tipoOperacion) {
             case GUARDAR:
@@ -272,6 +423,21 @@ public class ClienteController implements Initializable {
     // =========================================================
     // EDITAR / ACTUALIZAR
     // =========================================================
+
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO → ACTUALIZAR:</b> verifica que haya un cliente seleccionado,
+     *       activa controles, cambia etiquetas e iconos y fuerza la revalidacion de
+     *       los campos con los datos actuales mediante {@link #revalidarCampos()}.
+     *       Avanza el estado a {@code ACTUALIZAR}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> valida campos (vacios y formato), invoca
+     *       {@link flotabuses.servicios.ClienteService#actualizar} y, si el resultado
+     *       es exitoso ({@code 0}), restaura la interfaz y regresa a {@code NINGUNO}.
+     *       Muestra alertas si el DPI ({@code 2}) o el email ({@code 3}) estan
+     *       duplicados en otro cliente.</li>
+     * </ul>
+     */
     public void editar() {
         switch (tipoOperacion) {
             case NINGUNO:
@@ -354,6 +520,18 @@ public class ClienteController implements Initializable {
     // =========================================================
     // REPORTE
     // =========================================================
+
+    /**
+     * Boton dual que actua segun el estado de {@link #tipoOperacion}:
+     * <ul>
+     *   <li><b>NINGUNO:</b> muestra dos dialogos de confirmacion encadenados:
+     *       primero para elegir el formato (PDF o HTML) y luego el orden
+     *       (Ascendente o Descendente). Delega la generacion en
+     *       {@link flotabuses.servicios.ReporteService}.</li>
+     *   <li><b>ACTUALIZAR → NINGUNO:</b> cancela la edicion en curso y
+     *       restaura la interfaz al estado {@code NINGUNO}.</li>
+     * </ul>
+     */
     public void reporte() {
         switch (tipoOperacion) {
             case NINGUNO:
@@ -404,6 +582,13 @@ public class ClienteController implements Initializable {
     // =========================================================
     // CSV
     // =========================================================
+
+    /**
+     * Muestra un dialogo de confirmacion para que el usuario elija entre
+     * importar o exportar clientes en formato CSV.
+     * Delega en {@link #importarCSV()} o {@link #exportarCSV()} segun la
+     * eleccion. Solo visible para usuarios con rol {@code ADMIN}.
+     */
     public void CSV() {
         ButtonType btnImp = new ButtonType("Importar");
         ButtonType btnExp = new ButtonType("Exportar");
@@ -419,6 +604,13 @@ public class ClienteController implements Initializable {
         else if (res.get() == btnExp) exportarCSV();
     }
 
+    /**
+     * Abre un selector de archivo para elegir un CSV de clientes y lo importa
+     * fila por fila al arbol de clientes. El formato esperado es:
+     * {@code Código,Nombre,Identificación,Contraseña,Correo,Teléfono}.
+     * Valida formato de DPI, email y telefono en cada fila; al finalizar muestra
+     * un resumen con la cantidad de registros importados y los errores detallados.
+     */
     private void importarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Seleccionar Clientes.csv");
@@ -494,6 +686,12 @@ public class ClienteController implements Initializable {
         cargarDatos();
     }
 
+    /**
+     * Abre un selector de archivo para guardar los clientes actuales en un CSV
+     * con BOM UTF-8 para compatibilidad con Excel. El encabezado y cada fila
+     * siguen el formato: {@code Código,Nombre,Identificación,Contraseña,Correo,Teléfono}.
+     * Los clientes se exportan en orden ascendente por codigo.
+     */
     private void exportarCSV() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Guardar Clientes.csv");
@@ -521,6 +719,14 @@ public class ClienteController implements Initializable {
     // =========================================================
     // AUXILIARES DE LA TABLA
     // =========================================================
+
+    /**
+     * Muestra un dialogo de alerta modal con el tipo, titulo y mensaje indicados.
+     *
+     * @param tipo    tipo de alerta ({@code WARNING}, {@code ERROR}, {@code INFORMATION})
+     * @param titulo  texto del titulo de la ventana
+     * @param mensaje contenido del cuerpo del dialogo
+     */
     public void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
         Alert alert = new Alert(tipo);
         alert.setTitle(titulo);
@@ -529,6 +735,11 @@ public class ClienteController implements Initializable {
         alert.showAndWait();
     }
 
+    /**
+     * Copia los datos del cliente seleccionado en la tabla hacia los campos
+     * de texto del formulario. Se invoca desde el evento {@code onMouseClicked}
+     * de la tabla en el FXML.
+     */
     public void seleccionarElemento() {
         Cliente seleccionado = tblClientes.getSelectionModel().getSelectedItem();
         if (seleccionado != null) {
@@ -541,6 +752,11 @@ public class ClienteController implements Initializable {
         }
     }
 
+    /**
+     * Pone todos los campos de texto en modo solo lectura ({@code editable = false}).
+     * Se llama al volver al estado {@code NINGUNO} despues de guardar, cancelar
+     * o completar una actualizacion.
+     */
     public void desactivarControles() {
         txtNombre.setEditable(false);
         txtApellido.setEditable(false);
@@ -550,6 +766,10 @@ public class ClienteController implements Initializable {
         txtTelefono.setEditable(false);
     }
 
+    /**
+     * Habilita todos los campos de texto para edicion ({@code editable = true}).
+     * Se llama al iniciar una operacion de creacion o edicion.
+     */
     public void activarControles() {
         txtNombre.setEditable(true);
         txtApellido.setEditable(true);
@@ -559,6 +779,10 @@ public class ClienteController implements Initializable {
         txtTelefono.setEditable(true);
     }
 
+    /**
+     * Vacia todos los campos de texto, limpia la seleccion de la tabla y
+     * resetea los iconos Canvas y los estilos CSS de validacion de cada campo.
+     */
     public void limpiarControles() {
         txtNombre.clear();
         txtApellido.clear();
