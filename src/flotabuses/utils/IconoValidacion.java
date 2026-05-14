@@ -7,7 +7,6 @@
  *              - limpiar()         → borra el icono (estado neutro)
  */
 package flotabuses.utils;
-
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
