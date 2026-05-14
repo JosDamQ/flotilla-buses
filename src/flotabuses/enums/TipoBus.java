@@ -7,7 +7,7 @@ package flotabuses.enums;
  * {@link #capacidadValida(int)} permite verificar si un numero de pasajeros
  * es correcto para un tipo dado sin exponer los limites directamente.</p>
  *
- * <table border="1" cellpadding="5" cellspacing="0">
+ * <table border="1">
  *   <caption>Rangos de capacidad por tipo</caption>
  *   <tr><th>Tipo</th><th>Minimo</th><th>Maximo</th><th>Descripcion</th></tr>
  *   <tr><td>MICROBUS</td><td>1</td><td>10</td><td>Vehiculo compacto para grupos pequenos</td></tr>

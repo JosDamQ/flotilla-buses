@@ -9,7 +9,7 @@
  * debe exportar CSV antes de cerrar si desea conservarlos.</p>
  *
  * <h2>Servicios disponibles</h2>
- * <table border="1" cellpadding="5" cellspacing="0">
+ * <table border="1">
  *   <caption>Resumen de servicios</caption>
  *   <tr><th>Servicio</th><th>Estructura interna</th><th>Modelo gestionado</th></tr>
  *   <tr>

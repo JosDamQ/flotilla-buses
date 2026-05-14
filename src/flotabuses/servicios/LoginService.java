@@ -10,7 +10,7 @@ import flotabuses.modelos.Usuario;
  * <p>Implementa el patron <b>Singleton</b>. Al crearse la instancia, registra
  * automaticamente los dos usuarios predefinidos del sistema:</p>
  *
- * <table border="1" cellpadding="5" cellspacing="0">
+ * <table border="1">
  *   <caption>Usuarios predefinidos</caption>
  *   <tr><th>Username</th><th>Password</th><th>Rol</th></tr>
  *   <tr><td>admin</td><td>admin123</td><td>ADMIN</td></tr>

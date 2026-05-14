@@ -7,7 +7,7 @@ package flotabuses.enums;
  * y se propaga a {@link flotabuses.controladores.MenuController}, donde determina
  * que modulos se muestran en el menu principal.</p>
  *
- * <table border="1" cellpadding="5" cellspacing="0">
+ * <table border="1">
  *   <caption>Permisos por rol</caption>
  *   <tr><th>Modulo</th><th>ADMIN</th><th>OPERADOR</th></tr>
  *   <tr><td>Clientes</td><td>Si</td><td>Si</td></tr>

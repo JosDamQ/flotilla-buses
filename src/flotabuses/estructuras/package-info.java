@@ -8,7 +8,7 @@
  *
  * <h2>Estructuras disponibles</h2>
  *
- * <table border="1" cellpadding="5" cellspacing="0">
+ * <table border="1">
  *   <caption>Resumen de estructuras</caption>
  *   <tr><th>Clase</th><th>Tipo</th><th>Complejidad busqueda</th><th>Uso en el sistema</th></tr>
  *   <tr>
